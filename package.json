@@ -1,0 +1,22 @@
+{
+  "name": "jailbreak-my-agent",
+  "version": "0.1.0",
+  "description": "A paid CROO CAP agent that red-teams other agents' behavior (prompt injection, secret/fund exfiltration, jailbreaks) and returns a scored vulnerability report.",
+  "type": "module",
+  "license": "MIT",
+  "scripts": {
+    "start": "tsx src/agent.ts",
+    "dev": "tsx watch src/agent.ts",
+    "scan": "tsx src/cli.ts",
+    "test": "tsx test/redteam.test.ts"
+  },
+  "dependencies": {
+    "@croo-network/sdk": "^1.0.0",
+    "dotenv": "^16.4.5"
+  },
+  "devDependencies": {
+    "tsx": "^4.19.0",
+    "typescript": "^5.6.0",
+    "@types/node": "^22.7.0"
+  }
+}

@@ -1,0 +1,15 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 240 240" width="240" height="240" role="img" aria-label="Jailbreak-My-Agent icon">
+  <!-- neo-brutalism: red panel, thick black strokes, hard offset shadow -->
+  <rect x="34" y="34" width="184" height="184" rx="20" fill="#111111"/>
+  <rect x="22" y="22" width="184" height="184" rx="20" fill="#FF5252" stroke="#111111" stroke-width="9"/>
+
+  <!-- broken shield = security bypassed -->
+  <g transform="translate(64,52) scale(1.12)">
+    <path d="M50 8 L88 22 L88 50 C 88 74 72 90 50 96 C 28 90 12 74 12 50 L12 22 Z"
+          transform="translate(6,6)" fill="#111111"/>
+    <path d="M50 8 L88 22 L88 50 C 88 74 72 90 50 96 C 28 90 12 74 12 50 L12 22 Z"
+          fill="#2b2b2b" stroke="#111111" stroke-width="7" stroke-linejoin="round"/>
+    <polyline points="54,24 42,52 56,54 46,84" fill="none" stroke="#111111" stroke-width="12" stroke-linejoin="round" stroke-linecap="round"/>
+    <polyline points="54,24 42,52 56,54 46,84" fill="none" stroke="#FFE14D" stroke-width="6" stroke-linejoin="round" stroke-linecap="round"/>
+  </g>
+</svg>
