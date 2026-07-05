@@ -85,22 +85,21 @@ Package: **`@croo-network/sdk`**. Wiring lives entirely in `src/agent.ts`; the
 red-team engine (`src/attacks.ts`, `src/redteam.ts`, `src/report.ts`) is
 SDK-independent and unit-tested.
 
-**SDK surface used**
+**SDK surface used** (wired to the official `@croo-network/sdk` examples)
 
 | Symbol | Where | Purpose |
 |---|---|---|
-| `new AgentClient(config, sdkKey)` | init | provider client (`CROO_API_URL`, `CROO_WS_URL`, `CROO_SDK_KEY`) |
-| `EventType.NegotiationCreated` | subscribe | incoming hire request |
-| `EventType.OrderPaid` | subscribe | escrow funded → run the scan |
-| `acceptNegotiation(id)` / `rejectNegotiation(id, reason)` | handler | agree to / decline terms |
-| `deliverOrder(orderId, { deliverable_text, deliverable_json })` | handler | submit the report; Clear settles USDC |
+| `new AgentClient({ baseURL, wsURL, rpcURL }, sdkKey)` | init | provider client (`CROO_API_URL`, `CROO_WS_URL`, `CROO_SDK_KEY`) |
+| `await client.connectWebSocket()` | init | obtain the event stream |
+| `EventType.NegotiationCreated` / `EventType.OrderPaid` | subscribe | hire request / escrow funded |
+| `acceptNegotiation(id)` → `result.order.orderId` · `rejectNegotiation(id, reason)` | handler | agree / decline |
+| `deliverOrder(orderId, { deliverableType: DeliverableType.Text, deliverableText })` | handler | submit the report; Clear settles USDC |
+
+Buyer supplies the endpoint as a JSON string in `requirements`, e.g.
+`'{"target_url":"https://my-agent/invoke"}'`.
 
 **Chain / settlement:** USDC on **Base mainnet (chain id 8453)**; escrow via
 CAPVault; gas sponsored by the CROO Paymaster.
-
-**`TODO(sdk)` markers** in `src/agent.ts` flag the two things to confirm against
-the live SDK: how the event stream is obtained, and the exact order/negotiation
-payload field names. Everything else runs today.
 
 ---
 
