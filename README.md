@@ -117,9 +117,10 @@ cloud-metadata (`169.254.169.254`) addresses are refused, redirects are not
 followed, and response bodies are read capped (256 KB) so a hostile target can't
 exhaust memory. A security agent must not become an SSRF pivot.
 
-_Known residual: the guard resolves DNS and the fetch resolves again, so a
-determined DNS-rebinding attacker could differ between the two. A full fix pins
-the vetted IP via a custom dispatcher; tracked as future work._
+**DNS-rebinding closed:** requests run through a custom `undici` dispatcher whose
+lookup validates and pins the resolved IP, so the address that's checked is the
+exact address the socket connects to (TLS servername preserved). `assertPublicUrl`
+is a fast pre-flight reject on top.
 
 ---
 

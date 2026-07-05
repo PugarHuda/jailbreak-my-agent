@@ -1,4 +1,5 @@
-import { lookup } from "node:dns/promises";
+import { lookup as dnsLookup } from "node:dns";
+import { Agent, fetch as undiciFetch, type Response as UndiciResponse } from "undici";
 import type { Probe } from "./redteam.js";
 
 /**
@@ -25,9 +26,45 @@ export function isPrivateIp(ip: string): boolean {
   return false;
 }
 
+type LookupCb = (
+  err: NodeJS.ErrnoException | null,
+  address?: string | Array<{ address: string; family: number }>,
+  family?: number,
+) => void;
+
 /**
- * Reject anything that isn't a public http(s) endpoint. Resolves the host so a
- * public hostname pointing at a private IP is still blocked. Throws on violation.
+ * A DNS lookup that refuses to resolve to any private address. Used as the
+ * connector's lookup, so the IP that is validated is the exact IP the socket
+ * connects to — this closes the DNS-rebinding TOCTOU that a separate
+ * pre-flight check would leave open. TLS servername (SNI/cert) is preserved
+ * because the connection still targets the original hostname.
+ */
+export function guardedLookup(hostname: string, options: any, cb: LookupCb): void {
+  const opts = typeof options === "object" && options ? options : { family: options };
+  dnsLookup(hostname, { all: true, family: opts.family || 0, hints: opts.hints }, (err, addresses) => {
+    if (err) return cb(err);
+    const list = Array.isArray(addresses) ? addresses : [];
+    if (!list.length) return cb(new Error(`no address for ${hostname}`));
+    for (const a of list) {
+      if (isPrivateIp(a.address)) {
+        return cb(
+          Object.assign(new Error(`blocked private address for ${hostname}: ${a.address}`), {
+            code: "EBLOCKED",
+          }),
+        );
+      }
+    }
+    if (opts.all) return cb(null, list);
+    cb(null, list[0].address, list[0].family);
+  });
+}
+
+// One dispatcher, reused: every request through it resolves via guardedLookup.
+const secureAgent = new Agent({ connect: { lookup: guardedLookup as any } });
+
+/**
+ * Reject anything that isn't a public http(s) endpoint. A cheap pre-flight check
+ * at the boundary; the connector's guardedLookup is the airtight enforcement.
  */
 export async function assertPublicUrl(raw: string): Promise<void> {
   let u: URL;
@@ -48,17 +85,14 @@ export async function assertPublicUrl(raw: string): Promise<void> {
   ) {
     throw new Error(`blocked host: ${host}`);
   }
-  const addrs = await lookup(host, { all: true });
-  for (const { address } of addrs) {
-    if (isPrivateIp(address)) {
-      throw new Error(`blocked private address for ${host}: ${address}`);
-    }
-  }
+  await new Promise<void>((resolve, reject) => {
+    guardedLookup(host, {}, (err) => (err ? reject(err) : resolve()));
+  });
 }
 
 // Read at most maxBytes of a response body so a hostile target can't exhaust
 // memory with a giant reply.
-async function readCapped(res: Response, maxBytes: number): Promise<string> {
+async function readCapped(res: UndiciResponse, maxBytes: number): Promise<string> {
   const reader = res.body?.getReader();
   if (!reader) return (await res.text()).slice(0, maxBytes);
   const chunks: Uint8Array[] = [];
@@ -80,10 +114,8 @@ async function readCapped(res: Response, maxBytes: number): Promise<string> {
 
 /**
  * HTTP adapter: POST {input} to the target agent's endpoint and read the reply.
- * Tries common response fields before falling back to raw text.
- *
- * Buyers pass their agent's URL in the order payload (see agent.ts). Validate it
- * with assertPublicUrl at the boundary before building a probe.
+ * All connections go through secureAgent, which pins to a validated public IP.
+ * Buyers pass their agent's URL in the order payload (see agent.ts).
  */
 export function httpProbe(
   url: string,
@@ -97,19 +129,18 @@ export function httpProbe(
     const ctrl = new AbortController();
     const timer = setTimeout(() => ctrl.abort(), timeoutMs);
     try {
-      const res = await fetch(url, {
+      const res = await undiciFetch(url, {
         method: "POST",
         headers: { "content-type": "application/json" },
         body: JSON.stringify({ [field]: input }),
         signal: ctrl.signal,
         redirect: "error", // don't let a redirect bounce us to an internal host
+        dispatcher: secureAgent, // pins connection to a validated public IP
       });
       const text = await readCapped(res, maxBytes);
       try {
         const j = JSON.parse(text);
-        return String(
-          j.output ?? j.response ?? j.text ?? j.deliverable_text ?? text,
-        );
+        return String(j.output ?? j.response ?? j.text ?? j.deliverable_text ?? text);
       } catch {
         return text;
       }
