@@ -11,7 +11,7 @@ import "dotenv/config";
 import { AgentClient, EventType, DeliverableType } from "@croo-network/sdk";
 import { runRedTeam } from "./redteam.js";
 import { renderMarkdown } from "./report.js";
-import { httpProbe } from "./probe.js";
+import { httpProbe, assertPublicUrl } from "./probe.js";
 
 function required(name: string): string {
   const v = process.env[name];
@@ -50,6 +50,12 @@ stream.on(EventType.NegotiationCreated, async (e) => {
     const target = targetFrom(neg.requirements);
     if (!target) {
       await client.rejectNegotiation(negId, "missing target_url (consent required)");
+      return;
+    }
+    try {
+      await assertPublicUrl(target); // SSRF guard: only scan public endpoints
+    } catch (e) {
+      await client.rejectNegotiation(negId, `target rejected: ${(e as Error).message}`);
       return;
     }
     const res = await client.acceptNegotiation(negId);

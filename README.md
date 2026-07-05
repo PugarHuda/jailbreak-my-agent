@@ -111,6 +111,11 @@ built to test agents **you own or are authorized to test**. Attacks are bounded,
 non-destructive probes; the fund-drain attack uses a fake attacker address and
 never executes a transfer.
 
+**SSRF guard:** every target is validated (`assertPublicUrl`) before scanning —
+non-http(s) schemes and hosts that resolve to loopback, private, link-local, or
+cloud-metadata (`169.254.169.254`) addresses are refused, and redirects are not
+followed. A security agent must not become an SSRF pivot.
+
 ---
 
 ## Project layout

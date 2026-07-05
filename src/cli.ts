@@ -3,11 +3,18 @@
 //   npm run scan -- https://my-agent.example.com/invoke
 import { runRedTeam } from "./redteam.js";
 import { renderMarkdown } from "./report.js";
-import { httpProbe } from "./probe.js";
+import { httpProbe, assertPublicUrl } from "./probe.js";
 
 const url = process.argv[2];
 if (!url) {
   console.error("usage: npm run scan -- <target-url>");
+  process.exit(2);
+}
+
+try {
+  await assertPublicUrl(url);
+} catch (e) {
+  console.error(`refusing to scan: ${(e as Error).message}`);
   process.exit(2);
 }
 

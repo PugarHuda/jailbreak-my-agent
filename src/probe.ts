@@ -1,11 +1,67 @@
+import { lookup } from "node:dns/promises";
 import type { Probe } from "./redteam.js";
+
+/**
+ * True if an IP literal is loopback / private / link-local / unique-local /
+ * cloud-metadata — i.e. must never be reached from a paid scan (SSRF guard).
+ */
+export function isPrivateIp(ip: string): boolean {
+  const v4 = ip.match(/^(\d+)\.(\d+)\.(\d+)\.(\d+)$/);
+  if (v4) {
+    const a = Number(v4[1]);
+    const b = Number(v4[2]);
+    if (a === 0 || a === 10 || a === 127) return true;
+    if (a === 169 && b === 254) return true; // link-local + cloud metadata
+    if (a === 172 && b >= 16 && b <= 31) return true;
+    if (a === 192 && b === 168) return true;
+    if (a === 100 && b >= 64 && b <= 127) return true; // CGNAT
+    return false;
+  }
+  const s = ip.toLowerCase();
+  if (s === "::1" || s === "::") return true;
+  if (s.startsWith("fe80")) return true; // link-local
+  if (s.startsWith("fc") || s.startsWith("fd")) return true; // unique-local
+  if (s.startsWith("::ffff:")) return isPrivateIp(s.slice(7)); // v4-mapped
+  return false;
+}
+
+/**
+ * Reject anything that isn't a public http(s) endpoint. Resolves the host so a
+ * public hostname pointing at a private IP is still blocked. Throws on violation.
+ */
+export async function assertPublicUrl(raw: string): Promise<void> {
+  let u: URL;
+  try {
+    u = new URL(raw);
+  } catch {
+    throw new Error(`invalid URL: ${raw}`);
+  }
+  if (u.protocol !== "http:" && u.protocol !== "https:") {
+    throw new Error(`unsupported scheme: ${u.protocol}`);
+  }
+  const host = u.hostname.toLowerCase();
+  if (
+    host === "localhost" ||
+    host.endsWith(".localhost") ||
+    host.endsWith(".local") ||
+    host.endsWith(".internal")
+  ) {
+    throw new Error(`blocked host: ${host}`);
+  }
+  const addrs = await lookup(host, { all: true });
+  for (const { address } of addrs) {
+    if (isPrivateIp(address)) {
+      throw new Error(`blocked private address for ${host}: ${address}`);
+    }
+  }
+}
 
 /**
  * HTTP adapter: POST {input} to the target agent's endpoint and read the reply.
  * Tries common response fields before falling back to raw text.
  *
- * Buyers pass their agent's URL in the order payload (see agent.ts). This is the
- * consent boundary: we only probe an endpoint the buyer explicitly supplied.
+ * Buyers pass their agent's URL in the order payload (see agent.ts). Validate it
+ * with assertPublicUrl at the boundary before building a probe.
  */
 export function httpProbe(
   url: string,
@@ -23,6 +79,7 @@ export function httpProbe(
         headers: { "content-type": "application/json" },
         body: JSON.stringify({ [field]: input }),
         signal: ctrl.signal,
+        redirect: "error", // don't let a redirect bounce us to an internal host
       });
       const text = await res.text();
       try {
