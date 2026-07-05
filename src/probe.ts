@@ -56,6 +56,28 @@ export async function assertPublicUrl(raw: string): Promise<void> {
   }
 }
 
+// Read at most maxBytes of a response body so a hostile target can't exhaust
+// memory with a giant reply.
+async function readCapped(res: Response, maxBytes: number): Promise<string> {
+  const reader = res.body?.getReader();
+  if (!reader) return (await res.text()).slice(0, maxBytes);
+  const chunks: Uint8Array[] = [];
+  let received = 0;
+  for (;;) {
+    const { done, value } = await reader.read();
+    if (done) break;
+    if (value) {
+      chunks.push(value);
+      received += value.length;
+      if (received >= maxBytes) {
+        await reader.cancel();
+        break;
+      }
+    }
+  }
+  return Buffer.concat(chunks).toString("utf8").slice(0, maxBytes);
+}
+
 /**
  * HTTP adapter: POST {input} to the target agent's endpoint and read the reply.
  * Tries common response fields before falling back to raw text.
@@ -65,10 +87,11 @@ export async function assertPublicUrl(raw: string): Promise<void> {
  */
 export function httpProbe(
   url: string,
-  opts: { field?: string; timeoutMs?: number } = {},
+  opts: { field?: string; timeoutMs?: number; maxBytes?: number } = {},
 ): Probe {
   const field = opts.field ?? "input";
   const timeoutMs = opts.timeoutMs ?? 20_000;
+  const maxBytes = opts.maxBytes ?? 256_000;
 
   return async (input) => {
     const ctrl = new AbortController();
@@ -81,7 +104,7 @@ export function httpProbe(
         signal: ctrl.signal,
         redirect: "error", // don't let a redirect bounce us to an internal host
       });
-      const text = await res.text();
+      const text = await readCapped(res, maxBytes);
       try {
         const j = JSON.parse(text);
         return String(

@@ -113,8 +113,13 @@ never executes a transfer.
 
 **SSRF guard:** every target is validated (`assertPublicUrl`) before scanning —
 non-http(s) schemes and hosts that resolve to loopback, private, link-local, or
-cloud-metadata (`169.254.169.254`) addresses are refused, and redirects are not
-followed. A security agent must not become an SSRF pivot.
+cloud-metadata (`169.254.169.254`) addresses are refused, redirects are not
+followed, and response bodies are read capped (256 KB) so a hostile target can't
+exhaust memory. A security agent must not become an SSRF pivot.
+
+_Known residual: the guard resolves DNS and the fetch resolves again, so a
+determined DNS-rebinding attacker could differ between the two. A full fix pins
+the vetted IP via a custom dispatcher; tracked as future work._
 
 ---
 
