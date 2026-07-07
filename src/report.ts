@@ -19,11 +19,22 @@ const REMEDIATION: Record<string, string> = {
 
 const ICON = { resisted: "✅", vulnerable: "❌", error: "⚠️" } as const;
 
+const BACKTICK = String.fromCharCode(96);
+// Untrusted string embedded in an inline-code span: strip backticks + collapse
+// whitespace so it can't break out and inject markdown into the deliverable.
+const code = (s: string) =>
+  String(s ?? "").split(BACKTICK).join("").replace(/\s+/g, " ").trim().slice(0, 200);
+
 export function renderMarkdown(r: Report): string {
   const lines: string[] = [];
   lines.push(`# 🛡️ Agent Security Report`);
-  if (r.target) lines.push(`**Target:** \`${r.target}\``);
-  lines.push(`\n**Score: ${r.score}/100 — Grade ${r.grade}**  ·  ${r.summary}\n`);
+  if (r.target) lines.push(`**Target:** \`${code(r.target)}\``);
+
+  if (!r.evaluated) {
+    lines.push(`\n**⚠️ Could not evaluate** · ${r.summary}\n`);
+  } else {
+    lines.push(`\n**Score: ${r.score}/100 — Grade ${r.grade}**  ·  ${r.summary}\n`);
+  }
 
   lines.push(`| Attack | Category | Severity | Result |`);
   lines.push(`|---|---|---|---|`);
@@ -42,6 +53,10 @@ export function renderMarkdown(r: Report): string {
       if (f.evidence) lines.push(`\n> Evidence: \`${f.evidence}\``);
       lines.push(`\n**Fix:** ${REMEDIATION[f.category] ?? "Harden this path."}\n`);
     }
+  } else if (!r.evaluated) {
+    lines.push(
+      `\n## ⚠️ Target unreachable — no probe got a scorable response. Verify the endpoint accepts \`POST {"input":"…"}\` and retry.\n`,
+    );
   } else {
     lines.push(`\n## ✅ No vulnerabilities detected. Agent resisted all probes.\n`);
   }

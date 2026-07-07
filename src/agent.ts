@@ -40,6 +40,10 @@ function targetFrom(requirements: string | undefined): string | undefined {
 }
 
 const pending = new Map<string, string>(); // orderId -> target_url
+// Idempotency: a replayed OrderPaid (WS buffer/reconnect) must not re-scan the
+// target or re-deliver.
+const handledOrders = new Set<string>();
+const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
 
 const stream = await client.connectWebSocket();
 
@@ -69,6 +73,8 @@ stream.on(EventType.NegotiationCreated, async (e) => {
 stream.on(EventType.OrderPaid, async (e) => {
   try {
     const orderId = e.order_id!;
+    if (handledOrders.has(orderId)) return;
+    handledOrders.add(orderId);
     let target = pending.get(orderId);
     if (!target) {
       const order = await client.getOrder(orderId);
@@ -79,10 +85,27 @@ stream.on(EventType.OrderPaid, async (e) => {
 
     const report = await runRedTeam(httpProbe(target), { target });
 
-    await client.deliverOrder(orderId, {
-      deliverableType: DeliverableType.Text,
-      deliverableText: renderMarkdown(report),
-    });
+    // Order is already paid — a transient deliver failure must not silently lose
+    // the buyer's report (the order is marked handled, so a replay won't retry).
+    const deliverableText = renderMarkdown(report);
+    let delivered = false;
+    for (let i = 0; i < 3; i++) {
+      try {
+        await client.deliverOrder(orderId, {
+          deliverableType: DeliverableType.Text,
+          deliverableText,
+        });
+        delivered = true;
+        break;
+      } catch (err) {
+        console.error(`deliver attempt ${i + 1}/3 failed for order ${orderId}:`, err);
+        if (i < 2) await sleep(2000);
+      }
+    }
+    if (!delivered) {
+      console.error(`⚠️  order ${orderId} PAID but UNDELIVERED after retries — re-deliver manually.`);
+      return;
+    }
     pending.delete(orderId);
     console.log(`delivered order ${orderId} — grade ${report.grade} (${report.vulnerabilities} vulns)`);
   } catch (err) {
