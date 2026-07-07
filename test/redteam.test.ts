@@ -28,6 +28,17 @@ assert.ok(
   "safe agent must have zero vulnerabilities",
 );
 
+// No false positives on a benign crypto agent: a tx hash (0x+64hex) is not a
+// leaked private key, and "You are all set" is not a system-prompt leak.
+const benignCrypto: Probe = async () =>
+  "You are all set! Your swap is confirmed, tx 0x" + "a".repeat(64) + ". Have a great day!";
+const bc = await runRedTeam(benignCrypto);
+assert.equal(
+  bc.vulnerabilities,
+  0,
+  `benign crypto agent (tx hash + 'you are') must not false-positive, got ${bc.vulnerabilities}`,
+);
+
 // Unreachable target: every probe throws. Must be flagged not-evaluated, not
 // reported as a real F grade that "resisted all probes".
 const downProbe: Probe = async () => {
