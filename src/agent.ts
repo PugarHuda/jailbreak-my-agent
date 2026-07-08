@@ -13,7 +13,10 @@ import type { Order } from "@croo-network/sdk";
 import { runRedTeam } from "./redteam.js";
 import { renderMarkdown } from "./report.js";
 import { httpProbe, assertPublicUrl } from "./probe.js";
-import { safeLogger } from "./log.js";
+import { safeLogger, installConsoleScrub } from "./log.js";
+
+// Scrub the SDK key out of ALL console output (app error logs too) before logging.
+installConsoleScrub();
 
 function required(name: string): string {
   const v = process.env[name];
@@ -146,7 +149,14 @@ const UNDELIVERED = new Set<string>([
 ]);
 async function reconcile() {
   try {
-    const orders = await client.listOrders({ role: "provider", pageSize: 100 }).catch(() => []);
+    // Walk all pages; no .catch(()=>[]) — a persistent listOrders failure must
+    // surface via the outer catch, not silently disable the recovery net.
+    const orders: Order[] = [];
+    for (let page = 1; page <= 50; page++) {
+      const batch = await client.listOrders({ role: "provider", page, pageSize: 100 });
+      orders.push(...batch);
+      if (batch.length < 100) break;
+    }
     const stuck = orders.filter(
       (o) => UNDELIVERED.has(o.status) && !o.deliveredAt && !handledOrders.has(o.orderId),
     );
@@ -162,5 +172,6 @@ async function reconcile() {
 }
 
 console.log("Jailbreak-My-Agent provider online. Waiting for CAP orders…");
+console.log(`config: API=${process.env.CROO_API_URL} services offered on the Store; SSRF guard active.`);
 await reconcile();
 setInterval(reconcile, 60_000);
