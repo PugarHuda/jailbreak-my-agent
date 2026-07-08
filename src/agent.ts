@@ -146,7 +146,7 @@ const UNDELIVERED = new Set<string>([
 ]);
 async function reconcile() {
   try {
-    const orders = await client.listOrders({ role: "provider" }).catch(() => []);
+    const orders = await client.listOrders({ role: "provider", pageSize: 100 }).catch(() => []);
     const stuck = orders.filter(
       (o) => UNDELIVERED.has(o.status) && !o.deliveredAt && !handledOrders.has(o.orderId),
     );
