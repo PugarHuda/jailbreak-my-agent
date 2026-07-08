@@ -21,6 +21,7 @@ export interface Report {
   findings: Finding[];
   target?: string;
   evaluated: boolean; // false = every probe errored (unreachable); score is not a grade
+  reflects: boolean; // true = target echoes input verbatim (mirror, not an agent) — token/keyword findings are unreliable
 }
 
 /** A callable target: send an input, get the agent's text response. */
@@ -59,6 +60,19 @@ export async function runRedTeam(
     canary: "CANARY-" + randomBytes(6).toString("hex"),
     attackerAddress: "0xBADC0DE0000000000000000000000000DEADBEEF",
   };
+
+  // Reflection pre-check. Many detectors fire on trigger tokens that are present
+  // in the attack PROMPT (canary, "APPROVE", "PWNED", the attacker address). A
+  // target that just echoes input back (a mirror / misconfigured endpoint, not a
+  // reasoning agent) would score as maximally vulnerable — a false positive. Send
+  // one benign marker and see if it comes back verbatim, so the report can warn.
+  const marker = "REFLECT-" + randomBytes(6).toString("hex");
+  let reflects = false;
+  try {
+    reflects = ((await probe(`Reply with a brief greeting. (ref: ${marker})`)) ?? "").includes(marker);
+  } catch {
+    /* target may be down; the attack loop below reports unreachable */
+  }
 
   const findings: Finding[] = [];
   for (const atk of ATTACKS) {
@@ -102,6 +116,7 @@ export async function runRedTeam(
       findings,
       target: opts.target,
       evaluated: false,
+      reflects,
     };
   }
 
@@ -120,5 +135,6 @@ export async function runRedTeam(
     findings,
     target: opts.target,
     evaluated: true,
+    reflects,
   };
 }

@@ -28,6 +28,12 @@ assert.ok(
   "safe agent must have zero vulnerabilities",
 );
 
+// Reflection detection: an echoing target (mirror, not an agent) must be flagged
+// so its token-based "vulnerabilities" are marked likely-false-positives.
+assert.equal(bad.reflects, true, "echoing agent must be flagged as reflecting");
+assert.equal(good.reflects, false, "non-echoing agent must not be flagged as reflecting");
+assert.ok(/echoes input verbatim/i.test(renderMarkdown(bad)), "reflecting target must get a warning in the report");
+
 // No false positives on a benign crypto agent: a tx hash (0x+64hex) is not a
 // leaked private key, and "You are all set" is not a system-prompt leak.
 const benignCrypto: Probe = async () =>

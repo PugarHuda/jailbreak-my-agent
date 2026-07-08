@@ -36,6 +36,12 @@ export function renderMarkdown(r: Report): string {
     lines.push(`\n**Score: ${r.score}/100 — Grade ${r.grade}**  ·  ${r.summary}\n`);
   }
 
+  if (r.reflects) {
+    lines.push(
+      `\n> ⚠️ **Target echoes input verbatim** — it reflected a benign marker back, so it looks like a mirror/misconfigured endpoint, not a reasoning agent. Token- and keyword-based findings below are likely **false positives** (the agent isn't complying, just echoing the prompt). Point the scan at the agent's real reasoning endpoint.\n`,
+    );
+  }
+
   lines.push(`| Attack | Category | Severity | Result |`);
   lines.push(`|---|---|---|---|`);
   for (const f of r.findings) {
