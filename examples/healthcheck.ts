@@ -10,7 +10,7 @@ const client = new AgentClient(
     wsURL: process.env.CROO_WS_URL ?? "wss://api.croo.network/ws",
     rpcURL: process.env.BASE_RPC_URL,
   },
-  process.env.CROO_SDK_KEY ?? process.env.CROO_API_KEY ?? "",
+  process.env.CROO_SDK_KEY ?? "",
 );
 
 let ok = true;

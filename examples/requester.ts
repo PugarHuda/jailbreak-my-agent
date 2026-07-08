@@ -18,7 +18,7 @@ const client = new AgentClient(
     wsURL: required("CROO_WS_URL"),
     rpcURL: process.env.BASE_RPC_URL,
   },
-  process.env.CROO_SDK_KEY || required("CROO_API_KEY"),
+  required("CROO_SDK_KEY"),
 );
 
 const serviceId = required("CROO_TARGET_SERVICE_ID");
@@ -46,4 +46,4 @@ const neg: any = await client.negotiateOrder({
   serviceId,
   requirements: JSON.stringify({ target_url: targetUrl }),
 });
-console.log(`negotiation sent to scan: ${targetUrl}`, neg?.negotiation_id ?? "");
+console.log(`negotiation sent to scan: ${targetUrl}`, neg?.negotiationId ?? "");
