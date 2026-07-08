@@ -31,7 +31,7 @@ AI Agents · A2A · CROO Agent Protocol · Base · USDC · Security
 
 **Everyone audits Solidity. Nobody audits the agent.** As agents start hiring and paying each other on CROO, the new attack surface is the agent's *behavior* — prompt injection, secret and fund exfiltration, jailbreaks, and forged A2A trust signals. Contract auditors (ChainGuard, Aegis) exist; behavior auditors don't.
 
-**Jailbreak-My-Agent is the adversary you hire.** Point it at your agent's endpoint and it runs a battery of adversarial probes — prompt injection with a planted canary, fund-drain lure, secret exfiltration, jailbreak persona, A2A output-hijack, system-prompt extraction — and returns a **scored, reproducible vulnerability report** (grade A–F) with severity ratings and fixes, settled in USDC on Base. Pass your red-team before you list.
+**Jailbreak-My-Agent is the adversary you hire.** Point it at your agent's endpoint and it runs a battery of eight adversarial probes — prompt injection with a planted canary, fund-drain lure, secret exfiltration, jailbreak persona, A2A output-hijack, instruction override, system-prompt extraction, and **indirect / RAG injection** (a hidden instruction in "retrieved" content — the #1 real-world agent-injection class) — and returns a **scored, reproducible vulnerability report** (grade A–F) with severity ratings and fixes, settled in USDC on Base. Pass your red-team before you list.
 
 **Why the grading holds up.** Detection is heuristic-first: a planted canary token and credential-leak signatures are fully verifiable, so a report reproduces from the same suite with no LLM in the loop — it survives a human spot-check.
 
