@@ -8,6 +8,10 @@ for (const ip of ["10.0.0.1", "127.0.0.1", "169.254.169.254", "192.168.1.5", "17
 for (const ip of ["8.8.8.8", "1.1.1.1", "93.184.216.34"]) {
   assert.equal(isPrivateIp(ip), false, `${ip} should be public`);
 }
+// v4-mapped IPv6 in HEX form must also be caught (7f00:1 = 127.0.0.1, a9fe:a9fe = 169.254.169.254).
+assert.equal(isPrivateIp("::ffff:7f00:1"), true, "hex v4-mapped loopback must be private");
+assert.equal(isPrivateIp("::ffff:a9fe:a9fe"), true, "hex v4-mapped metadata must be private");
+assert.equal(isPrivateIp("::ffff:0808:0808"), false, "hex v4-mapped 8.8.8.8 is public");
 
 // assertPublicUrl — IP literals resolve to themselves (offline-safe).
 await assert.rejects(() => assertPublicUrl("http://127.0.0.1/x"), "loopback must be blocked");

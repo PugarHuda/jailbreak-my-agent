@@ -5,6 +5,7 @@
 //   npm run buyer -- https://my-agent.example.com/invoke
 import "dotenv/config";
 import { AgentClient, EventType } from "@croo-network/sdk";
+import { safeLogger } from "../src/log.js";
 
 function required(name: string): string {
   const v = process.env[name];
@@ -17,6 +18,7 @@ const client = new AgentClient(
     baseURL: required("CROO_API_URL"),
     wsURL: required("CROO_WS_URL"),
     rpcURL: process.env.BASE_RPC_URL,
+    logger: safeLogger,
   },
   required("CROO_SDK_KEY"),
 );

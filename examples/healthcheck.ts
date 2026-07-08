@@ -3,12 +3,14 @@
 //   npm run health
 import "dotenv/config";
 import { AgentClient } from "@croo-network/sdk";
+import { safeLogger } from "../src/log.js";
 
 const client = new AgentClient(
   {
     baseURL: process.env.CROO_API_URL ?? "https://api.croo.network",
     wsURL: process.env.CROO_WS_URL ?? "wss://api.croo.network/ws",
     rpcURL: process.env.BASE_RPC_URL,
+    logger: safeLogger,
   },
   process.env.CROO_SDK_KEY ?? "",
 );

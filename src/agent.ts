@@ -8,10 +8,12 @@
 // we fetch it with getNegotiation. The red-team engine (src/*) is SDK-independent
 // and unit-tested.
 import "dotenv/config";
-import { AgentClient, EventType, DeliverableType } from "@croo-network/sdk";
+import { AgentClient, EventType, DeliverableType, OrderStatus } from "@croo-network/sdk";
+import type { Order } from "@croo-network/sdk";
 import { runRedTeam } from "./redteam.js";
 import { renderMarkdown } from "./report.js";
 import { httpProbe, assertPublicUrl } from "./probe.js";
+import { safeLogger } from "./log.js";
 
 function required(name: string): string {
   const v = process.env[name];
@@ -24,6 +26,7 @@ const client = new AgentClient(
     baseURL: required("CROO_API_URL"),
     wsURL: required("CROO_WS_URL"),
     rpcURL: process.env.BASE_RPC_URL,
+    logger: safeLogger, // scrub the SDK key out of the logged ws url
   },
   required("CROO_SDK_KEY"),
 );
@@ -33,7 +36,8 @@ const client = new AgentClient(
 function targetFrom(requirements: string | undefined): string | undefined {
   if (!requirements) return undefined;
   try {
-    return JSON.parse(requirements).target_url;
+    const t = JSON.parse(requirements).target_url;
+    return typeof t === "string" ? t : undefined; // a non-string target_url can't be scanned
   } catch {
     return undefined;
   }
@@ -70,23 +74,35 @@ stream.on(EventType.NegotiationCreated, async (e) => {
   }
 });
 
-stream.on(EventType.OrderPaid, async (e) => {
+async function handlePaidOrder(orderId: string, knownOrder?: Order) {
+  // Idempotency: skip a replayed OrderPaid / an order reconcile already grabbed.
+  if (handledOrders.has(orderId)) return;
+  handledOrders.add(orderId);
   try {
-    const orderId = e.order_id!;
-    if (handledOrders.has(orderId)) return;
-    handledOrders.add(orderId);
+    const order = knownOrder ?? (await client.getOrder(orderId).catch(() => undefined));
+    // Already delivered? A replayed OrderPaid after a restart must not re-scan/re-deliver.
+    if (order?.deliveredAt) return;
     let target = pending.get(orderId);
     if (!target) {
-      const order = await client.getOrder(orderId);
-      target = targetFrom((await client.getNegotiation(order.negotiationId)).requirements);
+      // No context and nothing spent here — un-mark so a later replay/sweep can retry.
+      if (!order) {
+        handledOrders.delete(orderId);
+        return;
+      }
+      const neg = await client.getNegotiation(order.negotiationId);
+      target = targetFrom(neg.requirements);
     }
-    if (!target) return;
+    if (!target) {
+      handledOrders.delete(orderId);
+      return;
+    }
     console.log(`order ${orderId} paid — red-teaming ${target}`);
 
     const report = await runRedTeam(httpProbe(target), { target });
 
     // Order is already paid — a transient deliver failure must not silently lose
-    // the buyer's report (the order is marked handled, so a replay won't retry).
+    // the buyer's report. Re-scanning costs no money here (no sub-orders), so on a
+    // failed deliver we un-mark and let reconcile retry the whole thing.
     const deliverableText = renderMarkdown(report);
     let delivered = false;
     for (let i = 0; i < 3; i++) {
@@ -103,14 +119,48 @@ stream.on(EventType.OrderPaid, async (e) => {
       }
     }
     if (!delivered) {
-      console.error(`⚠️  order ${orderId} PAID but UNDELIVERED after retries — re-deliver manually.`);
+      console.error(`⚠️  order ${orderId} PAID but UNDELIVERED after retries — reconcile will retry.`);
+      handledOrders.delete(orderId);
       return;
     }
     pending.delete(orderId);
     console.log(`delivered order ${orderId} — grade ${report.grade} (${report.vulnerabilities} vulns)`);
   } catch (err) {
+    handledOrders.delete(orderId); // pre-delivery failure (e.g. getNegotiation threw) — allow retry
     console.error("orderPaid handler error:", err);
   }
+}
+
+stream.on(EventType.OrderPaid, async (e) => {
+  await handlePaidOrder(e.order_id!);
 });
 
+// Reconcile missed events: an OrderPaid that fires while the WS is disconnected
+// would leave the buyer paid with no scan/report. Sweep provider orders that are
+// paid but not yet delivered and process any not already handled. On startup + on
+// an interval. ponytail: 60s poll; tighten if orders must clear faster.
+const UNDELIVERED = new Set<string>([
+  OrderStatus.Paid,
+  OrderStatus.Delivering,
+  OrderStatus.DeliverFailed,
+]);
+async function reconcile() {
+  try {
+    const orders = await client.listOrders({ role: "provider" }).catch(() => []);
+    const stuck = orders.filter(
+      (o) => UNDELIVERED.has(o.status) && !o.deliveredAt && !handledOrders.has(o.orderId),
+    );
+    for (const o of stuck) {
+      console.log(`reconcile: recovering paid-but-undelivered order ${o.orderId} (${o.status})`);
+      await handlePaidOrder(o.orderId, o).catch((err) =>
+        console.error(`reconcile: order ${o.orderId} failed:`, err),
+      );
+    }
+  } catch (err) {
+    console.error("reconcile error:", err);
+  }
+}
+
 console.log("Jailbreak-My-Agent provider online. Waiting for CAP orders…");
+await reconcile();
+setInterval(reconcile, 60_000);

@@ -22,7 +22,18 @@ export function isPrivateIp(ip: string): boolean {
   if (s === "::1" || s === "::") return true;
   if (s.startsWith("fe80")) return true; // link-local
   if (s.startsWith("fc") || s.startsWith("fd")) return true; // unique-local
-  if (s.startsWith("::ffff:")) return isPrivateIp(s.slice(7)); // v4-mapped
+  if (s.startsWith("::ffff:")) {
+    // v4-mapped: tail may be dotted (::ffff:127.0.0.1) or hex (::ffff:7f00:1 =
+    // 127.0.0.1). Normalize hex groups to dotted; fail CLOSED (block) if unparseable.
+    const tail = s.slice(7);
+    if (tail.includes(".")) return isPrivateIp(tail);
+    const g = tail.split(":").filter(Boolean);
+    if (g.length !== 2) return true;
+    const hi = parseInt(g[0], 16);
+    const lo = parseInt(g[1], 16);
+    if (Number.isNaN(hi) || Number.isNaN(lo)) return true;
+    return isPrivateIp([(hi >> 8) & 255, hi & 255, (lo >> 8) & 255, lo & 255].join("."));
+  }
   return false;
 }
 
