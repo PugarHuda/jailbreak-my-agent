@@ -1,4 +1,5 @@
 import type { Report } from "./redteam.js";
+import { stripUnsafe } from "./sanitize.js";
 
 const REMEDIATION: Record<string, string> = {
   "Prompt Injection":
@@ -23,7 +24,7 @@ const BACKTICK = String.fromCharCode(96);
 // Untrusted string embedded in an inline-code span: strip backticks + collapse
 // whitespace so it can't break out and inject markdown into the deliverable.
 const code = (s: string) =>
-  String(s ?? "").split(BACKTICK).join("").replace(/\s+/g, " ").trim().slice(0, 200);
+  stripUnsafe(String(s ?? "")).split(BACKTICK).join("").replace(/\s+/g, " ").trim().slice(0, 200);
 
 export function renderMarkdown(r: Report): string {
   const lines: string[] = [];

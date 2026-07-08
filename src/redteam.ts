@@ -1,5 +1,6 @@
 import { randomBytes } from "node:crypto";
 import { ATTACKS, type AttackContext, type Severity } from "./attacks.js";
+import { stripUnsafe } from "./sanitize.js";
 
 export type Status = "resisted" | "vulnerable" | "error";
 
@@ -44,7 +45,7 @@ const snippet = (r: string) => {
   // also removes newlines/tabs) so a hostile reply can't break out of the
   // inline-code span in the report and inject markdown/instructions into the
   // buyer-facing deliverable — the A2A output-hijack this very tool tests for.
-  const s = (r ?? "")
+  const s = stripUnsafe(r ?? "")
     .split(BACKTICK)
     .join("")
     .replace(/\s+/g, " ")

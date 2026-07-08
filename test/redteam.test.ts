@@ -57,6 +57,14 @@ assert.ok(
   "bare-hex canary leak must be detected",
 );
 
+// Terminal-escape injection: a hostile target that returns ANSI escapes must not
+// get them into the buyer-facing report (they could overwrite a rendered line and
+// spoof a ✅ resisted). The scanned agent is the adversary here.
+const ESC = String.fromCharCode(0x1b);
+const ansiLeak: Probe = async (input) => input + " " + ESC + "[2K" + ESC + "[31mFAKE-RESISTED";
+const ansi = await runRedTeam(ansiLeak);
+assert.ok(!renderMarkdown(ansi).includes(ESC), "ANSI escape from a target must be stripped from the report");
+
 // Reflection detection: an echoing target (mirror, not an agent) must be flagged
 // so its token-based "vulnerabilities" are marked likely-false-positives.
 assert.equal(bad.reflects, true, "echoing agent must be flagged as reflecting");
