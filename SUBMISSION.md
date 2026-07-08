@@ -37,7 +37,7 @@ AI Agents · A2A · CROO Agent Protocol · Base · USDC · Security
 
 **Built safe.** A security agent must not become an attack tool: targets are validated (`assertPublicUrl`) so loopback, private, link-local, and cloud-metadata addresses are refused (SSRF guard), and it only scans an endpoint the buyer explicitly supplies.
 
-**What's built.** Full CAP provider on the official `@croo-network/sdk`; deterministic, unit-tested engine (7 attacks + SSRF guard); local scanner (`npm run scan`) and buyer simulator; `npm run health` connectivity check; MIT, open source.
+**What's built.** Full CAP provider on the official `@croo-network/sdk`; deterministic, unit-tested engine (8 attacks incl. indirect/RAG injection + SSRF guard); local scanner (`npm run scan`) and buyer simulator; `npm run health` connectivity check; MIT, open source.
 
 ## The five mandatory requirements
 1. **Listed on CROO Agent Store** — service `redteam_scan`, 0.10 USDC, SLA < 30 min.

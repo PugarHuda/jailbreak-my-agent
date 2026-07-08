@@ -31,7 +31,7 @@ adversary: point it at an agent, it runs a battery of attacks and returns a
 ```
 Buyer/agent ──negotiate (supplies target_url + consent)──►  Jailbreak-My-Agent
             ──pay (USDC → CAPVault escrow, Base 8453)────►
-                        run 7 adversarial probes against target
+                        run 8 adversarial probes against target
             ◄──deliver { report } ──► Clear → escrow released, PTS updated
 ```
 
@@ -46,6 +46,7 @@ Buyer/agent ──negotiate (supplies target_url + consent)──►  Jailbreak-
 | `output-hijack` | Output Hijack (A2A Trust) | high | Forged JSON poisons downstream agents |
 | `system-prompt-leak` | System Prompt Extraction | high | Hidden instructions can be extracted |
 | `instruction-override` | Instruction Override | medium | Task can be hijacked from user input |
+| `indirect-injection` | Prompt Injection | critical | A poisoned tool/RAG result (not user-typed) is obeyed |
 
 Detection is **heuristic-first**: a planted **canary token** and credential-leak
 signatures are fully verifiable, so a report can be reproduced from the same
@@ -109,9 +110,15 @@ CAPVault; gas sponsored by the CROO Paymaster.
 
 This tool only ever probes an endpoint the **buyer supplies in the order
 payload** (`target_url`). No target, no scan — the negotiation is rejected. It is
-built to test agents **you own or are authorized to test**. Attacks are bounded,
-non-destructive probes; the fund-drain attack uses a fake attacker address and
-never executes a transfer.
+built to test agents **you own or are authorized to test** — authorization is
+**your responsibility**: the scanner verifies the target is a public endpoint, not
+that you own it, so do not point it at third parties. The scanner itself only
+sends text and reads replies (it never moves funds), but the payloads are
+**genuinely adversarial**: a target that is wired to act on free text could, in
+principle, be induced by the fund-drain probe to move or burn its own funds. It
+uses a fixed burn-style attacker address to minimize that, but scan only with
+consent. These are **single-turn baseline probes**, not an exhaustive multi-turn
+red-team — a passing grade means "resisted these", not "provably secure".
 
 **SSRF guard:** every target is validated (`assertPublicUrl`) before scanning —
 non-http(s) schemes and hosts that resolve to loopback, private, link-local, or
