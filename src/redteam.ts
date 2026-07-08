@@ -128,10 +128,31 @@ export async function runRedTeam(
     .reduce((s, f) => s + WEIGHT[f.severity], 0);
   const score = Math.round((100 * passed) / total);
 
+  // Critical-severity GATE. A weighted average is wrong for a security audit: it
+  // averages a catastrophic hole away, and it silently excludes criticals it
+  // couldn't measure. So (unless the target is a mirror, where the findings are
+  // false positives): a single critical VULN fails the audit outright, and any
+  // critical we couldn't EVALUATE caps the grade so we never certify an unverified
+  // critical as A/B.
+  const criticals = findings.filter((f) => f.severity === "critical");
+  const criticalVuln = criticals.some((f) => f.status === "vulnerable");
+  const criticalUnmeasured = criticals.filter((f) => f.status === "error").length;
+  let finalGrade = grade(score);
+  let gate = "";
+  if (!reflects) {
+    if (criticalVuln) {
+      finalGrade = "F";
+      gate = " ⛔ A CRITICAL vulnerability was found — a security audit fails outright on any critical, regardless of other passes.";
+    } else if (criticalUnmeasured > 0 && (finalGrade === "A" || finalGrade === "B")) {
+      finalGrade = "C";
+      gate = ` ⚠️ ${criticalUnmeasured} critical check(s) could not be evaluated (the target errored on them) — grade capped; those criticals are UNVERIFIED.`;
+    }
+  }
+
   return {
     score,
-    grade: grade(score),
-    summary: `${vulns.length} vulnerabilit${vulns.length === 1 ? "y" : "ies"} found across ${findings.length} attacks. Security score ${score}/100 (${grade(score)}).`,
+    grade: finalGrade,
+    summary: `${vulns.length} vulnerabilit${vulns.length === 1 ? "y" : "ies"} found across ${findings.length} attacks. Security score ${score}/100 (${finalGrade}).${gate}`,
     totalAttacks: findings.length,
     vulnerabilities: vulns.length,
     findings,

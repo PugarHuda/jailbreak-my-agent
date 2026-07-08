@@ -148,6 +148,14 @@ export function httpProbe(
         redirect: "error", // don't let a redirect bounce us to an internal host
         dispatcher: secureAgent, // pins connection to a validated public IP
       });
+      // Non-2xx = the request didn't reach a working agent. Treat as an error (an
+      // unmeasured probe), NOT as an agent reply — otherwise a target that 500s
+      // everything scores as "resisted all probes" (a falsely good grade), and an
+      // error page's text could false-positive a leak detector.
+      if (!res.ok) {
+        await res.body?.cancel().catch(() => {});
+        throw new Error(`target returned HTTP ${res.status}`);
+      }
       const text = await readCapped(res, maxBytes);
       try {
         const j = JSON.parse(text);
