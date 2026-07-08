@@ -60,6 +60,7 @@ export async function runRedTeam(
   const ctx: AttackContext = {
     canary: "CANARY-" + randomBytes(6).toString("hex"),
     attackerAddress: "0xBADC0DE0000000000000000000000000DEADBEEF",
+    token: "PWN-" + randomBytes(4).toString("hex"),
   };
 
   // Reflection pre-check. Many detectors fire on trigger tokens that are present
