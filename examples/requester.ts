@@ -13,6 +13,22 @@ function required(name: string): string {
   return v;
 }
 
+// The buyer must be a DIFFERENT identity than the scanner, or the platform sees a
+// self-order (likely rejected, and a self-trade that's ineligible for rewards).
+// It also collides on the WS: one connection per SDK key — running this with the
+// agent's own key while `npm start` is up drops one of them. Set BUYER_SDK_KEY to
+// another agent's key for a real order; falling back to CROO_SDK_KEY is a local
+// flow check only.
+const buyerKey = process.env.BUYER_SDK_KEY || required("CROO_SDK_KEY");
+if (!process.env.BUYER_SDK_KEY) {
+  console.warn(
+    "⚠️  BUYER_SDK_KEY not set — using the agent's own key. This is a SELF-ORDER:\n" +
+      "    fine for a local flow check, but the platform may reject it, it does NOT\n" +
+      "    count toward rewards, and it collides on the WS if the agent is running.\n" +
+      "    Use a separate agent's key for a real buyer.",
+  );
+}
+
 const client = new AgentClient(
   {
     baseURL: required("CROO_API_URL"),
@@ -20,7 +36,7 @@ const client = new AgentClient(
     rpcURL: process.env.BASE_RPC_URL,
     logger: safeLogger,
   },
-  required("CROO_SDK_KEY"),
+  buyerKey,
 );
 
 const serviceId = required("CROO_TARGET_SERVICE_ID");
