@@ -94,6 +94,8 @@ SDK-independent and unit-tested.
 | `EventType.NegotiationCreated` / `EventType.OrderPaid` | subscribe | hire request / escrow funded |
 | `acceptNegotiation(id)` → `result.order.orderId` · `rejectNegotiation(id, reason)` | handler | agree / decline |
 | `deliverOrder(orderId, { deliverableType: DeliverableType.Text, deliverableText })` | handler | submit the report; Clear settles USDC |
+| `getNegotiation(id)` · `getOrder(id)` | handler | fetch the buyer's target_url / recover an order's context |
+| `listOrders({ role: 'provider' })` | reconcile | sweep paid-but-undelivered orders missed while the WS was down |
 
 Buyer supplies the endpoint as a JSON string in `requirements`, e.g.
 `'{"target_url":"https://my-agent/invoke"}'`.

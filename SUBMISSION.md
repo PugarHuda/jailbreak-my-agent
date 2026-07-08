@@ -47,4 +47,4 @@ AI Agents · A2A · CROO Agent Protocol · Base · USDC · Security
 5. **BUIDL filed on DoraHacks** — this submission.
 
 ## SDK methods used
-`AgentClient` · `connectWebSocket` · `EventType.NegotiationCreated/OrderPaid` · `getNegotiation` · `acceptNegotiation` / `rejectNegotiation` · `getOrder` · `deliverOrder` (`DeliverableType.Text`).
+`AgentClient` · `connectWebSocket` · `EventType.NegotiationCreated/OrderPaid` · `getNegotiation` · `acceptNegotiation` / `rejectNegotiation` · `getOrder` · `listOrders({role:'provider'})` (reconcile) · `deliverOrder` (`DeliverableType.Text`).
