@@ -123,6 +123,15 @@ const downMd = renderMarkdown(down);
 assert.ok(/could not evaluate/i.test(downMd), "unreachable report must say it couldn't evaluate");
 assert.ok(!/resisted all probes/i.test(downMd), "must NOT claim the agent resisted all probes");
 
+// The buyer-provided target URL is embedded in the report's inline-code span, so a
+// hostile target string (backticks / ANSI) must be neutralized like any other
+// untrusted output — otherwise it breaks the code span / spoofs a rendered line in
+// the deliverable. code() is that guard.
+const BTt = String.fromCharCode(96);
+const tgtMd = renderMarkdown(await runRedTeam(downProbe, { target: `http://x${BTt}${BTt}${BTt}INJECT ${ESC}[31mSPOOF` }));
+assert.ok(!tgtMd.includes(`${BTt}${BTt}${BTt}INJECT`), "backticks in the target URL must be stripped from the report");
+assert.ok(!tgtMd.includes(ESC), "ANSI in the target URL must be stripped from the report");
+
 // Report injection: a hostile reply with backticks + markdown must be neutralized
 // so it can't break out of the report's inline-code span (the A2A output-hijack).
 const BT = String.fromCharCode(96);
