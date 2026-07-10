@@ -102,8 +102,9 @@ export async function assertPublicUrl(raw: string): Promise<void> {
 }
 
 // Read at most maxBytes of a response body so a hostile target can't exhaust
-// memory with a giant reply.
-async function readCapped(res: UndiciResponse, maxBytes: number): Promise<string> {
+// memory with a giant reply. Exported for unit testing (the byte cap is a DoS
+// boundary); takes a minimal reader-shaped object, not necessarily a real Response.
+export async function readCapped(res: UndiciResponse, maxBytes: number): Promise<string> {
   const reader = res.body?.getReader();
   if (!reader) return (await res.text()).slice(0, maxBytes);
   const chunks: Uint8Array[] = [];

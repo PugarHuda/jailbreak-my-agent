@@ -1,5 +1,48 @@
 import assert from "node:assert/strict";
-import { isPrivateIp, assertPublicUrl, guardedLookup, pickResponseField } from "../src/probe.js";
+import { isPrivateIp, assertPublicUrl, guardedLookup, pickResponseField, readCapped } from "../src/probe.js";
+
+// readCapped — the memory-exhaustion boundary. A hostile target streaming forever
+// must be cut off at maxBytes AND the stream cancelled (stop pulling data).
+{
+  const chunk = new Uint8Array(8); // 8-byte chunks, stream never ends
+  let served = 0;
+  let cancelled = false;
+  const reader = {
+    read: async () => {
+      served++;
+      return { done: false, value: chunk };
+    },
+    cancel: async () => {
+      cancelled = true;
+    },
+  };
+  const infinite = { body: { getReader: () => reader } } as any;
+  const out = await readCapped(infinite, 10);
+  assert.equal(out.length, 10, "output is capped at maxBytes even from an unbounded stream");
+  assert.ok(cancelled, "the stream is cancelled once the cap is hit (stop reading a hostile target)");
+  assert.ok(served <= 3, `reading stops promptly at the cap, not unbounded (reads=${served})`);
+}
+
+// Under the cap: the full body is returned.
+{
+  const parts = [Buffer.from("hel"), Buffer.from("lo")];
+  let i = 0;
+  const res = {
+    body: {
+      getReader: () => ({
+        read: async () => (i < parts.length ? { done: false, value: parts[i++] } : { done: true, value: undefined }),
+        cancel: async () => {},
+      }),
+    },
+  } as any;
+  assert.equal(await readCapped(res, 256_000), "hello", "a small body is returned in full");
+}
+
+// No readable body: fall back to res.text(), still capped.
+{
+  const res = { body: null, text: async () => "abcdefghij" } as any;
+  assert.equal(await readCapped(res, 4), "abcd", "no-body fallback still respects the cap");
+}
 
 // pickResponseField — what the detectors actually scan. A wrong pick mis-scores
 // every attack, so pin the field precedence and fallbacks.
