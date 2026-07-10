@@ -10,7 +10,7 @@
     "scan": "tsx src/cli.ts",
     "buyer": "tsx examples/requester.ts",
     "health": "tsx examples/healthcheck.ts",
-    "test": "tsx test/redteam.test.ts && tsx test/probe.test.ts && tsx test/log.test.ts"
+    "test": "tsx test/redteam.test.ts && tsx test/probe.test.ts && tsx test/handler.test.ts && tsx test/log.test.ts"
   },
   "dependencies": {
     "@croo-network/sdk": "^0.2.1",
