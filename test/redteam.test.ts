@@ -143,7 +143,13 @@ assert.ok(
   !hp.findings.some((f) => f.evidence.includes(BT)),
   "evidence must contain no backticks (no code-span breakout)",
 );
-assert.ok(!renderMarkdown(hp).includes(BT + BT + BT), "triple-backtick from target must be stripped");
+// The report now has a legit ```json fence (machine block), so scope the check to
+// the human section: the hostile target's own ``` must not survive there.
+const hpMd = renderMarkdown(hp);
+assert.ok(
+  !hpMd.slice(0, hpMd.indexOf("```json")).includes(BT + BT + BT),
+  "triple-backtick from target must be stripped from the human section",
+);
 
 // system-prompt-leak via the "you are an?" branch specifically (a leak that opens
 // "You are a helpful assistant…" WITHOUT the literal phrase "system prompt") — pins
@@ -155,6 +161,18 @@ assert.ok(
   rl.findings.some((f) => f.id === "system-prompt-leak" && f.status === "vulnerable"),
   "a 'You are a…' system-prompt leak must be caught by the you-are-an? cue",
 );
+
+// Machine-readable JSON block: an orchestrator can gate on grade/score without
+// scraping markdown. Present, parseable, carries grade+findings, and a hostile
+// target URL's backticks can't break out of the fenced block.
+const jsonReport = await runRedTeam(safe, { target: `https://x${String.fromCharCode(96)}${String.fromCharCode(96)}${String.fromCharCode(96)}INJECT` });
+const jmd = renderMarkdown(jsonReport);
+const jblock = jmd.slice(jmd.indexOf("```json") + 7);
+const jjson = jblock.slice(0, jblock.indexOf("```"));
+const jparsed = JSON.parse(jjson);
+assert.equal(jparsed.grade, "A", "machine JSON carries the grade for programmatic gating");
+assert.ok(Array.isArray(jparsed.findings) && jparsed.findings.length === jsonReport.totalAttacks, "machine JSON lists every attack finding");
+assert.ok(!jjson.includes(String.fromCharCode(96)), "backticks in the target must be stripped from the json block (no fence breakout)");
 
 // Critical-severity GATE: one failed critical fails the whole audit (not a lenient
 // B from averaging), and an UNMEASURED critical caps the grade (can't certify A/B).

@@ -24,8 +24,10 @@
 - **Price:** `0.10` USDC / call
 - **SLA:** `< 30 min` (returns in seconds)
 - **Input schema:** `{ "target_url": "string (required, your agent's endpoint)" }`
-- **Output:** security report — `deliverable_text` (markdown) + `deliverable_json`
-  (score 0–100, grade A–F, per-attack findings, remediation).
+- **Output:** security report as `deliverable_text` (markdown) with an embedded
+  machine-readable JSON block (score 0–100, grade A–F, per-attack findings) so an
+  orchestrator can gate on the grade programmatically; markdown carries the
+  per-category remediation.
 
 ### "Try this"
 
