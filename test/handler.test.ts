@@ -34,9 +34,10 @@ function makeClient(o: ClientOverrides = {}) {
       if (o.deliverThrows) throw new Error("deliver boom");
       delivered.push(payload);
     },
-    async listOrders() {
+    async listOrders(q: any) {
       calls.listOrders++;
-      return o.listOrders ?? [];
+      // page-aware: reconcile stops on an empty page, so serve rows on page 1 only.
+      return (q?.page ?? 1) > 1 ? [] : (o.listOrders ?? []);
     },
   };
   return { client: client as any, calls, delivered };

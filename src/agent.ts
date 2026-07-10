@@ -38,6 +38,18 @@ const { handlePaidOrder, reconcile, pending } = createScanHandler(client);
 
 const stream = await client.connectWebSocket();
 
+// The SDK stops reconnecting on a terminal WS death (duplicate-key 1008 policy
+// violation); the process would otherwise stay alive but DEAF to new orders while
+// reconcile keeps logging, so the keepalive supervisor never restarts it. Exit on
+// permanent WS death so the supervisor relaunches. ponytail: 30s poll.
+setInterval(() => {
+  const e = stream.err?.();
+  if (e) {
+    console.error("websocket permanently down — exiting so the supervisor restarts:", e);
+    process.exit(1);
+  }
+}, 30_000);
+
 stream.on(EventType.NegotiationCreated, async (e) => {
   try {
     const negId = e.negotiation_id!;

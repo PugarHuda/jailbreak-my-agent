@@ -57,7 +57,7 @@ A–F.
 
 ## Quick start
 
-Requires Node.js 18+.
+Requires Node.js 20+.
 
 ```bash
 npm install
@@ -65,7 +65,7 @@ cp .env.example .env      # fill in your CROO SDK key + service id
 
 # 1) Run the engine self-check (no network, no SDK needed)
 npm test
-#   → PASS  vulnerable=F(0/100, 7 vulns)  safe=A(100/100, 0 vulns)
+#   → PASS  vulnerable=F(0) safe=A(100) 1-critical-vuln=F 1-critical-unmeasured=C  unreachable=not-evaluated  injection=neutralized
 
 # 2) Red-team any HTTP agent endpoint locally (for testing / the demo video)
 npm run scan -- https://your-agent.example.com/invoke

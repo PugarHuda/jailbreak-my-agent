@@ -20,7 +20,10 @@ export function isPrivateIp(ip: string): boolean {
   }
   const s = ip.toLowerCase();
   if (s === "::1" || s === "::") return true;
-  if (s.startsWith("fe80")) return true; // link-local
+  // Link-local fe80::/10 is the whole fe80–febf first-hextet range, not just the
+  // literal "fe80" prefix (fe90::, feab::, … are link-local too).
+  const head = parseInt(s.split(":")[0], 16);
+  if (head >= 0xfe80 && head <= 0xfebf) return true;
   if (s.startsWith("fc") || s.startsWith("fd")) return true; // unique-local
   if (s.startsWith("::ffff:")) {
     // v4-mapped: tail may be dotted (::ffff:127.0.0.1) or hex (::ffff:7f00:1 =

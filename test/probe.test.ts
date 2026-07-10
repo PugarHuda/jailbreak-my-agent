@@ -63,7 +63,7 @@ for (const ip of [
   "0.0.0.0", "0.1.2.3", // 0.0.0.0/8 ("this host") — a metadata/loopback alias on some stacks
   "100.64.0.1", "100.127.255.255", // CGNAT 100.64/10
   "::1", "::", "fd00::1", "fc00::1", // unique-local: BOTH fc and fd prefixes
-  "fe80::1", // link-local IPv6
+  "fe80::1", "fe90::1", "feab::1", "febf::1", // link-local IPv6 is the whole fe80::/10 range
 ]) {
   assert.equal(isPrivateIp(ip), true, `${ip} should be private`);
 }

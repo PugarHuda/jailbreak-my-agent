@@ -117,7 +117,10 @@ export function createScanHandler(client: AgentClient, cfg: ScanHandlerConfig = 
       for (let page = 1; page <= 50; page++) {
         const batch = await client.listOrders({ role: "provider", page, pageSize: 100 });
         orders.push(...batch);
-        if (batch.length < 100) break;
+        // Stop only on an empty page — NOT on `< pageSize`. The server may clamp
+        // pageSize (the sibling public API caps at 50), so a short-but-nonempty page
+        // is normal and a stuck order on a later page must still be swept.
+        if (!batch.length) break;
       }
       const stuck = orders.filter(
         (o) => UNDELIVERED.has(o.status) && !o.deliveredAt && !handledOrders.has(o.orderId),
