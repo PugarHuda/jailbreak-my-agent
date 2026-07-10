@@ -124,6 +124,21 @@ async function readCapped(res: UndiciResponse, maxBytes: number): Promise<string
 }
 
 /**
+ * Extract the agent's reply text from a raw HTTP body: prefer common JSON reply
+ * fields (output / response / text / deliverable_text), else fall back to the raw
+ * body. This is what the detectors actually see, so a wrong pick mis-scores every
+ * attack — kept pure and unit-tested.
+ */
+export function pickResponseField(text: string): string {
+  try {
+    const j = JSON.parse(text);
+    return String(j.output ?? j.response ?? j.text ?? j.deliverable_text ?? text);
+  } catch {
+    return text;
+  }
+}
+
+/**
  * HTTP adapter: POST {input} to the target agent's endpoint and read the reply.
  * All connections go through secureAgent, which pins to a validated public IP.
  * Buyers pass their agent's URL in the order payload (see agent.ts).
@@ -156,13 +171,7 @@ export function httpProbe(
         await res.body?.cancel().catch(() => {});
         throw new Error(`target returned HTTP ${res.status}`);
       }
-      const text = await readCapped(res, maxBytes);
-      try {
-        const j = JSON.parse(text);
-        return String(j.output ?? j.response ?? j.text ?? j.deliverable_text ?? text);
-      } catch {
-        return text;
-      }
+      return pickResponseField(await readCapped(res, maxBytes));
     } finally {
       clearTimeout(timer);
     }

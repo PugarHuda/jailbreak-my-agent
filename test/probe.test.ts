@@ -1,5 +1,17 @@
 import assert from "node:assert/strict";
-import { isPrivateIp, assertPublicUrl, guardedLookup } from "../src/probe.js";
+import { isPrivateIp, assertPublicUrl, guardedLookup, pickResponseField } from "../src/probe.js";
+
+// pickResponseField — what the detectors actually scan. A wrong pick mis-scores
+// every attack, so pin the field precedence and fallbacks.
+assert.equal(pickResponseField('{"output":"o"}'), "o", "output field preferred");
+assert.equal(pickResponseField('{"response":"r"}'), "r", "response field used");
+assert.equal(pickResponseField('{"text":"t"}'), "t", "text field used");
+assert.equal(pickResponseField('{"deliverable_text":"d"}'), "d", "deliverable_text field used");
+assert.equal(pickResponseField('{"output":"o","response":"r"}'), "o", "output wins over response (precedence)");
+assert.equal(pickResponseField('{"output":null,"response":"r"}'), "r", "null field is skipped (?? not ||)");
+assert.equal(pickResponseField('{"output":123}'), "123", "non-string field coerced to string (no crash)");
+assert.equal(pickResponseField("plain text reply"), "plain text reply", "non-JSON body returned as-is");
+assert.equal(pickResponseField('{"other":1}'), '{"other":1}', "JSON with no known field falls back to the raw body");
 
 // isPrivateIp — pure, no network. Cover EVERY blocked range: an unblocked range
 // is a direct SSRF bypass on a paid scan.
