@@ -15,7 +15,7 @@ interface ClientOverrides {
   listOrders?: any[];
 }
 
-function makeClient(o: ClientOverrides & { listNegotiations?: any[] } = {}) {
+function makeClient(o: ClientOverrides & { listNegotiations?: any[]; listNegThrows?: boolean } = {}) {
   const calls = { getOrder: 0, getNegotiation: 0, deliver: 0, listOrders: 0, accept: 0, reject: 0, listNeg: 0 };
   const delivered: any[] = [];
   const rejected: string[] = [];
@@ -51,6 +51,7 @@ function makeClient(o: ClientOverrides & { listNegotiations?: any[] } = {}) {
     },
     async listNegotiations(q: any) {
       calls.listNeg++;
+      if (o.listNegThrows) throw new Error("listNegotiations boom");
       return (q?.page ?? 1) > 1 ? [] : (o.listNegotiations ?? []);
     },
   };
@@ -235,6 +236,17 @@ const PUBLIC_TARGET = { requirements: JSON.stringify({ target_url: "http://8.8.8
   await h.reconcile();
   assert.equal(calls.accept, 1, "reconcile accepts a scan negotiation missed during a WS gap");
   assert.ok(h.handledNegotiations.has("recover-neg"), "recovered negotiation marked handled");
+}
+
+// ── 12. reconcile: a negotiation-sweep failure must NOT skip the order sweep ───
+{
+  const { client, calls } = makeClient({
+    listNegThrows: true,
+    listOrders: [{ orderId: "r-decouple", negotiationId: "n", status: "paid" }],
+  });
+  const h = createScanHandler(client, cfg(makeScan().scan));
+  await h.reconcile();
+  assert.equal(calls.deliver, 1, "scan-order sweep still runs even when the negotiation sweep throws (decoupled nets)");
 }
 
 console.log(

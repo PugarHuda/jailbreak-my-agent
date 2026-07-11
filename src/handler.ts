@@ -169,8 +169,10 @@ export function createScanHandler(client: AgentClient, cfg: ScanHandlerConfig = 
   async function reconcile() {
     try {
       // First recover negotiations missed during a WS gap (accepting them creates
-      // the orders the order-sweep below then processes).
-      await reconcileNegotiations();
+      // the orders the order-sweep below then processes). Its own catch: a
+      // listNegotiations failure must NOT skip the paid-order sweep below — the two
+      // recovery nets are independent.
+      await reconcileNegotiations().catch((err) => console.error("reconcile negotiations error:", err));
       // Walk all pages; no .catch(()=>[]) — a persistent listOrders failure must
       // surface via the outer catch, not silently disable the recovery net.
       const orders: Order[] = [];
