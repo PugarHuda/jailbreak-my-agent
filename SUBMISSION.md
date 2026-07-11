@@ -37,7 +37,7 @@ AI Agents · A2A · CROO Agent Protocol · Base · USDC · Security
 
 **Built safe.** A security agent must not become an attack tool: targets are validated (`assertPublicUrl`) so loopback, private, link-local, and cloud-metadata addresses are refused (SSRF guard), and it only scans an endpoint the buyer explicitly supplies.
 
-**What's built.** Full CAP provider on the official `@croo-network/sdk`; deterministic, unit-tested engine (8 attacks incl. indirect/RAG injection + SSRF guard); local scanner (`npm run scan`) and buyer simulator; `npm run health` connectivity check; MIT, open source.
+**What's built.** Full CAP provider on the official `@croo-network/sdk` (order-handling core isolated in `src/handler.ts`, unit-tested with a mock client — 4 test suites); deterministic, unit-tested engine (8 attacks incl. indirect/RAG injection + SSRF guard); the report ships an **embedded machine-readable JSON block** (grade/score/findings) so an orchestrator can gate on the grade programmatically; local scanner (`npm run scan`), an offline full-deliverable demo (`npm run demo`, no key/no network), buyer simulator, and `npm run health` connectivity check; MIT, open source.
 
 ## The five mandatory requirements
 1. **Listed on CROO Agent Store** — service `redteam_scan`, 0.10 USDC, SLA < 30 min.
@@ -47,4 +47,4 @@ AI Agents · A2A · CROO Agent Protocol · Base · USDC · Security
 5. **BUIDL filed on DoraHacks** — this submission.
 
 ## SDK methods used
-`AgentClient` · `connectWebSocket` · `EventType.NegotiationCreated/OrderPaid` · `getNegotiation` · `acceptNegotiation` / `rejectNegotiation` · `getOrder` · `listOrders({role:'provider'})` (reconcile) · `deliverOrder` (`DeliverableType.Text`).
+`AgentClient` · `connectWebSocket` · `EventType.NegotiationCreated/OrderPaid` · `getNegotiation` · `acceptNegotiation` / `rejectNegotiation` · `getOrder` · `listNegotiations` / `listOrders` (`{role:'provider'}`, reconcile) · `deliverOrder` (`DeliverableType.Text`).

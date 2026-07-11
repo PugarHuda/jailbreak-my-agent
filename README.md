@@ -67,10 +67,16 @@ cp .env.example .env      # fill in your CROO SDK key + service id
 npm test
 #   → PASS  vulnerable=F(0) safe=A(100) 1-critical-vuln=F 1-critical-unmeasured=C  unreachable=not-evaluated  injection=neutralized
 
-# 2) Red-team any HTTP agent endpoint locally (for testing / the demo video)
+# 2) See the FULL deliverable offline — no CROO key, no network. Runs the real
+#    engine against in-process vulnerable + safe agents and prints each report
+#    (markdown + its embedded machine-readable JSON block). Zero-setup local option.
+npm run demo
+
+# 3) Red-team a real HTTP agent endpoint (must be PUBLIC — the SSRF guard
+#    correctly blocks localhost/private hosts, so use demo above for a local run)
 npm run scan -- https://your-agent.example.com/invoke
 
-# 3) Go live on CAP: accept orders and deliver reports on-chain
+# 4) Go live on CAP: accept orders and deliver reports on-chain
 npm start
 ```
 
@@ -82,8 +88,10 @@ see `src/probe.ts`).
 
 ## CAP / SDK integration notes
 
-Package: **`@croo-network/sdk`**. Wiring lives entirely in `src/agent.ts`; the
-red-team engine (`src/attacks.ts`, `src/redteam.ts`, `src/report.ts`) is
+Package: **`@croo-network/sdk`**. The scan-order-handling core (accept/reject →
+scan → deliver → reconcile) lives in `src/handler.ts`, unit-testable with a mock
+client (no WS, no network scan); `src/agent.ts` is a thin WebSocket+env wire on
+top. The red-team engine (`src/attacks.ts`, `src/redteam.ts`, `src/report.ts`) is
 SDK-independent and unit-tested.
 
 **SDK surface used** (wired to the official `@croo-network/sdk` examples)
@@ -96,6 +104,7 @@ SDK-independent and unit-tested.
 | `acceptNegotiation(id)` → `result.order.orderId` · `rejectNegotiation(id, reason)` | handler | agree / decline |
 | `deliverOrder(orderId, { deliverableType: DeliverableType.Text, deliverableText })` | handler | submit the report; Clear settles USDC |
 | `getNegotiation(id)` · `getOrder(id)` | handler | fetch the buyer's target_url / recover an order's context |
+| `listNegotiations({ role: 'provider', status: Pending })` | reconcile | recover scan negotiations that arrived while the WS was down (never dropped) |
 | `listOrders({ role: 'provider' })` | reconcile | sweep paid-but-undelivered orders missed while the WS was down |
 
 Buyer supplies the endpoint as a JSON string in `requirements`, e.g.
@@ -138,11 +147,13 @@ is a fast pre-flight reject on top.
 ```
 src/attacks.ts   attack library + deterministic detectors
 src/redteam.ts   runner, scoring, grading
-src/report.ts    markdown report + per-category remediation
-src/probe.ts     HTTP adapter to a target agent
+src/report.ts    markdown report + per-category remediation (+ embedded machine-readable JSON block)
+src/probe.ts     HTTP adapter to a target agent (SSRF guard, DNS-pinning, byte-capped reads)
+src/handler.ts   scan-order-handling core (accept/reject → scan → deliver → reconcile), mock-client testable
 src/cli.ts       local scanner (npm run scan)
-src/agent.ts     CAP provider (accept → scan → deliver)
-test/redteam.test.ts  self-check: vulnerable→F, safe→A
+src/agent.ts     thin WS+env wire onto handler.ts
+examples/demo.ts  offline full-deliverable demo (npm run demo)
+test/            redteam · probe · handler · log (4 suites, run via npm test)
 ```
 
 ## License

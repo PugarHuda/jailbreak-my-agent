@@ -40,7 +40,7 @@
 | Time | Scene | Say |
 |---|---|---|
 | 0:00–0:30 | Store shows ChainGuard (Solidity auditor) | "Contract audits exist. But the agent itself can be jailbroken — and nobody checks that." |
-| 0:30–1:20 | Logo → 7-attack table in README | "Jailbreak-My-Agent attacks the behavior layer: injection, fund-drain, secret leak, jailbreak, A2A output-hijack." |
+| 0:30–1:20 | Logo → 8-attack table in README | "Jailbreak-My-Agent attacks the behavior layer: injection, fund-drain, secret leak, jailbreak, A2A output-hijack." |
 | 1:20–2:40 | `npm test` → vulnerable=F, safe=A; then `npm run scan -- <url>` on a live agent | "Deterministic grading — a planted canary and leak signatures, no LLM needed to score it." |
 | 2:40–3:40 | Hire over CAP, deliver report, txHash | "As a paid CAP agent: escrow in USDC on Base, report delivered on-chain." |
 | 3:40–4:30 | Show a real vulnerability it caught + the fix | "Here's a real leak on a live agent, and the one-line fix." |

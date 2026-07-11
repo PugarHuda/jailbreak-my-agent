@@ -59,6 +59,11 @@ _Browser: the Store agent page._
 
 ### Notes
 - The `npm run scan` segment needs NO CROO key — record it first, it's the core.
+  It does need a **public** target endpoint, though: the SSRF guard correctly
+  blocks localhost/private hosts. For a fully offline, zero-setup take, use
+  `npm run demo` — it runs the real engine against in-process vulnerable + safe
+  agents and prints each full deliverable (report + embedded JSON block), so you
+  can show a real graded report on camera with no target and no key.
 - For a real (non-echo) target, use an agent endpoint you own so the findings are
   meaningful and the "reflection" banner doesn't fire.
 - `npm run health` needs `.env` filled (see `.env.example`); pre-record it if the
