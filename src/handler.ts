@@ -2,11 +2,11 @@
 // so it can be unit-tested with a mock client (no WS, no network scan). agent.ts
 // is now a thin env+WS wire. Every guard here encodes an idempotency/retry
 // property; don't drop them.
-import { DeliverableType, OrderStatus } from "@croo-network/sdk";
-import type { AgentClient, Order } from "@croo-network/sdk";
+import { DeliverableType, OrderStatus, NegotiationStatus } from "@croo-network/sdk";
+import type { AgentClient, Order, Negotiation } from "@croo-network/sdk";
 import { runRedTeam, type Report } from "./redteam.js";
 import { renderMarkdown } from "./report.js";
-import { httpProbe } from "./probe.js";
+import { httpProbe, assertPublicUrl } from "./probe.js";
 
 // Buyer supplies the endpoint to test in `requirements`
 // (e.g. '{"target_url":"https://my-agent/invoke"}'). No target -> no scan.
@@ -48,6 +48,63 @@ export function createScanHandler(client: AgentClient, cfg: ScanHandlerConfig = 
   // Idempotency: a replayed OrderPaid (WS buffer/reconnect) must not re-scan the
   // target or re-deliver.
   const handledOrders = new Set<string>();
+  // Negotiations already accepted/rejected — guards the WS handler and the recovery
+  // sweep from double-accepting the same negotiation.
+  const handledNegotiations = new Set<string>();
+
+  // Accept (or reject) a scan negotiation: require a target_url + pass the SSRF
+  // pre-flight, else reject. Shared by the live WS NegotiationCreated handler and
+  // the recovery sweep (a negotiation that arrived while the WS was down would
+  // otherwise be dropped and never become an order). knownNeg is supplied by the
+  // sweep (from listNegotiations) to skip a fetch.
+  async function handleNegotiation(negId: string, knownNeg?: Negotiation) {
+    if (handledNegotiations.has(negId)) return;
+    handledNegotiations.add(negId);
+    try {
+      const neg = knownNeg ?? (await client.getNegotiation(negId));
+      if (neg.status && neg.status !== NegotiationStatus.Pending) return; // already resolved
+      const target = targetFrom(neg.requirements);
+      if (!target) {
+        await client.rejectNegotiation(negId, "missing target_url (consent required)");
+        return;
+      }
+      try {
+        await assertPublicUrl(target); // SSRF guard: only scan public endpoints
+      } catch (e) {
+        await client.rejectNegotiation(negId, `target rejected: ${(e as Error).message}`);
+        return;
+      }
+      const res = await client.acceptNegotiation(negId);
+      pending.set(res.order.orderId, target);
+      console.log(`accepted negotiation ${negId} -> order ${res.order.orderId}`);
+    } catch (err) {
+      handledNegotiations.delete(negId); // transient failure — allow a later retry
+      console.error("negotiation handler error:", err);
+    }
+  }
+
+  // Recover negotiations that arrived while the WS was disconnected: without this
+  // the buyer's scan request is dropped and never becomes an order.
+  async function reconcileNegotiations() {
+    const negs: Negotiation[] = [];
+    for (let page = 1; page <= 50; page++) {
+      const batch = await client.listNegotiations({
+        role: "provider",
+        status: NegotiationStatus.Pending,
+        page,
+        pageSize: 100,
+      });
+      negs.push(...batch);
+      if (!batch.length) break;
+    }
+    for (const n of negs) {
+      if (handledNegotiations.has(n.negotiationId)) continue;
+      console.log(`reconcile: recovering un-accepted negotiation ${n.negotiationId}`);
+      await handleNegotiation(n.negotiationId, n).catch((err) =>
+        console.error(`reconcile: negotiation ${n.negotiationId} failed:`, err),
+      );
+    }
+  }
 
   async function handlePaidOrder(orderId: string, knownOrder?: Order) {
     // Idempotency: skip a replayed OrderPaid / an order reconcile already grabbed.
@@ -111,6 +168,9 @@ export function createScanHandler(client: AgentClient, cfg: ScanHandlerConfig = 
   // paid but not yet delivered and process any not already handled.
   async function reconcile() {
     try {
+      // First recover negotiations missed during a WS gap (accepting them creates
+      // the orders the order-sweep below then processes).
+      await reconcileNegotiations();
       // Walk all pages; no .catch(()=>[]) — a persistent listOrders failure must
       // surface via the outer catch, not silently disable the recovery net.
       const orders: Order[] = [];
@@ -136,5 +196,5 @@ export function createScanHandler(client: AgentClient, cfg: ScanHandlerConfig = 
     }
   }
 
-  return { handlePaidOrder, reconcile, pending, handledOrders };
+  return { handlePaidOrder, handleNegotiation, reconcile, pending, handledOrders, handledNegotiations };
 }

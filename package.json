@@ -8,6 +8,7 @@
     "start": "tsx src/agent.ts",
     "dev": "tsx watch src/agent.ts",
     "scan": "tsx src/cli.ts",
+    "demo": "tsx examples/demo.ts",
     "buyer": "tsx examples/requester.ts",
     "health": "tsx examples/healthcheck.ts",
     "test": "tsx test/redteam.test.ts && tsx test/probe.test.ts && tsx test/handler.test.ts && tsx test/log.test.ts"

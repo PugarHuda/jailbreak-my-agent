@@ -15,9 +15,11 @@ interface ClientOverrides {
   listOrders?: any[];
 }
 
-function makeClient(o: ClientOverrides = {}) {
-  const calls = { getOrder: 0, getNegotiation: 0, deliver: 0, listOrders: 0 };
+function makeClient(o: ClientOverrides & { listNegotiations?: any[] } = {}) {
+  const calls = { getOrder: 0, getNegotiation: 0, deliver: 0, listOrders: 0, accept: 0, reject: 0, listNeg: 0 };
   const delivered: any[] = [];
+  const rejected: string[] = [];
+  let seq = 0;
   const client = {
     async getOrder() {
       calls.getOrder++;
@@ -39,8 +41,20 @@ function makeClient(o: ClientOverrides = {}) {
       // page-aware: reconcile stops on an empty page, so serve rows on page 1 only.
       return (q?.page ?? 1) > 1 ? [] : (o.listOrders ?? []);
     },
+    async acceptNegotiation() {
+      calls.accept++;
+      return { order: { orderId: `accepted-${++seq}` } };
+    },
+    async rejectNegotiation(_id: string, reason: string) {
+      calls.reject++;
+      rejected.push(reason);
+    },
+    async listNegotiations(q: any) {
+      calls.listNeg++;
+      return (q?.page ?? 1) > 1 ? [] : (o.listNegotiations ?? []);
+    },
   };
-  return { client: client as any, calls, delivered };
+  return { client: client as any, calls, delivered, rejected };
 }
 
 // A scan spy: records the targets scanned and returns a canned report.
@@ -173,6 +187,54 @@ assert.equal(targetFrom("{}"), undefined, "missing target_url -> undefined");
 
   assert.equal(seen.length, 1, "only the paid-but-undelivered order (r1) is scanned");
   assert.equal(calls.deliver, 1, "only r1 delivered");
+}
+
+// ── 9. handleNegotiation: accept a valid target, reject a missing one ─────────
+// NB: handleNegotiation runs the REAL assertPublicUrl (DNS), so the happy-path
+// target must resolve offline to a public address — use an IP literal (8.8.8.8).
+const PUBLIC_TARGET = { requirements: JSON.stringify({ target_url: "http://8.8.8.8/invoke" }) };
+{
+  const { client, calls } = makeClient({ negotiation: PUBLIC_TARGET });
+  const h = createScanHandler(client, cfg(makeScan().scan));
+  await h.handleNegotiation("neg1");
+  assert.equal(calls.accept, 1, "a negotiation with a valid public target is accepted");
+  assert.ok(h.pending.has("accepted-1"), "target stashed against the new order id");
+}
+{
+  const { client, calls, rejected } = makeClient({ negotiation: { requirements: "{}" } });
+  const h = createScanHandler(client, cfg(makeScan().scan));
+  await h.handleNegotiation("neg2");
+  assert.equal(calls.accept, 0, "no target_url -> not accepted");
+  assert.equal(calls.reject, 1, "no target_url -> rejected (consent required)");
+  assert.ok(/target/i.test(rejected[0]), "reject reason mentions the missing target");
+}
+
+// ── 10. handleNegotiation: reject a private/SSRF target, don't accept ─────────
+{
+  const { client, calls, rejected } = makeClient({ negotiation: { requirements: JSON.stringify({ target_url: "http://169.254.169.254/latest/meta-data" }) } });
+  const h = createScanHandler(client, cfg(makeScan().scan));
+  await h.handleNegotiation("neg3");
+  assert.equal(calls.accept, 0, "a cloud-metadata target must be rejected, never accepted (SSRF)");
+  assert.equal(calls.reject, 1, "SSRF target rejected");
+  assert.ok(/reject/i.test(rejected[0]), "reject reason explains the target was rejected");
+}
+
+// ── 11. handleNegotiation idempotent + reconcile recovers a missed one ────────
+{
+  const { client, calls } = makeClient({ negotiation: PUBLIC_TARGET });
+  const h = createScanHandler(client, cfg(makeScan().scan));
+  await h.handleNegotiation("neg4");
+  await h.handleNegotiation("neg4");
+  assert.equal(calls.accept, 1, "a replayed NegotiationCreated must not double-accept");
+}
+{
+  const { client, calls } = makeClient({
+    listNegotiations: [{ negotiationId: "recover-neg", status: "pending", requirements: JSON.stringify({ target_url: "http://8.8.8.8/invoke" }) }],
+  });
+  const h = createScanHandler(client, cfg(makeScan().scan));
+  await h.reconcile();
+  assert.equal(calls.accept, 1, "reconcile accepts a scan negotiation missed during a WS gap");
+  assert.ok(h.handledNegotiations.has("recover-neg"), "recovered negotiation marked handled");
 }
 
 console.log(

@@ -9,8 +9,7 @@
 // and unit-tested.
 import "dotenv/config";
 import { AgentClient, EventType } from "@croo-network/sdk";
-import { assertPublicUrl } from "./probe.js";
-import { targetFrom, createScanHandler } from "./handler.js";
+import { createScanHandler } from "./handler.js";
 import { safeLogger, installConsoleScrub } from "./log.js";
 
 // Scrub the SDK key out of ALL console output (app error logs too) before logging.
@@ -34,7 +33,7 @@ const client = new AgentClient(
 
 // The scan-order-handling core (scan, delivery, reconcile) lives in handler.ts so
 // it's unit-testable with a mock client. This file only wires it to the live WS.
-const { handlePaidOrder, reconcile, pending } = createScanHandler(client);
+const { handlePaidOrder, handleNegotiation, reconcile } = createScanHandler(client);
 
 const stream = await client.connectWebSocket();
 
@@ -51,26 +50,7 @@ setInterval(() => {
 }, 30_000);
 
 stream.on(EventType.NegotiationCreated, async (e) => {
-  try {
-    const negId = e.negotiation_id!;
-    const neg = await client.getNegotiation(negId);
-    const target = targetFrom(neg.requirements);
-    if (!target) {
-      await client.rejectNegotiation(negId, "missing target_url (consent required)");
-      return;
-    }
-    try {
-      await assertPublicUrl(target); // SSRF guard: only scan public endpoints
-    } catch (e) {
-      await client.rejectNegotiation(negId, `target rejected: ${(e as Error).message}`);
-      return;
-    }
-    const res = await client.acceptNegotiation(negId);
-    pending.set(res.order.orderId, target);
-    console.log(`accepted negotiation ${negId} -> order ${res.order.orderId}`);
-  } catch (err) {
-    console.error("negotiation handler error:", err);
-  }
+  await handleNegotiation(e.negotiation_id!);
 });
 
 stream.on(EventType.OrderPaid, async (e) => {
