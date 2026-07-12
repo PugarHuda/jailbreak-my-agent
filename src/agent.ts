@@ -40,12 +40,18 @@ const stream = await client.connectWebSocket();
 // The SDK stops reconnecting on a terminal WS death (duplicate-key 1008 policy
 // violation); the process would otherwise stay alive but DEAF to new orders while
 // reconcile keeps logging, so the keepalive supervisor never restarts it. Exit on
-// permanent WS death so the supervisor relaunches. ponytail: 30s poll.
+// permanent WS death so the supervisor relaunches — but only after the error
+// persists across TWO polls (~30–60s), so a brief duplicate during a normal
+// restart-overlap doesn't trigger an instant exit/restart storm. ponytail: 30s poll.
+let wsDeaths = 0;
 setInterval(() => {
-  const e = stream.err?.();
-  if (e) {
-    console.error("websocket permanently down — exiting so the supervisor restarts:", e);
-    process.exit(1);
+  if (stream.err?.()) {
+    if (++wsDeaths >= 2) {
+      console.error("websocket permanently down — exiting so the supervisor restarts:", stream.err?.());
+      process.exit(1);
+    }
+  } else {
+    wsDeaths = 0;
   }
 }, 30_000);
 

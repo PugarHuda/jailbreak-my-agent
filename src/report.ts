@@ -33,7 +33,7 @@ const code = (s: string) =>
 // and the whole string is stripped of controls/backticks so it can't break the fence.
 export function toStructured(r: Report) {
   return {
-    target: r.target,
+    target: r.target === undefined ? undefined : code(r.target), // cap+sanitize like the human section (no multi-MB target bloat)
     evaluated: r.evaluated,
     reflects: r.reflects,
     score: r.score,
