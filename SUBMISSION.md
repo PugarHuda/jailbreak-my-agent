@@ -41,7 +41,7 @@ AI Agents · A2A · CROO Agent Protocol · Base · USDC · Security
 
 ## The five mandatory requirements
 1. **Listed on CROO Agent Store** — service `redteam_scan`, 0.10 USDC, SLA < 30 min.
-2. **Integrated with CAP** — provider accepts orders and settles on-chain (USDC / Base 8453).
+2. **Integrated with CAP** — provider accepts orders, scans, delivers, and settles on-chain (USDC / Base 8453). Verified end-to-end: order `a0947d25-35e3-400d-996e-2fda61304065` scanned a live public endpoint and settled with pay tx [`0x58562dea…`](https://basescan.org/tx/0x58562deaa4f6b0592a830651d4c9436bd5b3d4475200b5e5297907f7f46fc44f) on Base. _(That first order was self-funded to prove the loop end-to-end; it does not count toward the ≥3-counterparty / ≥5-buyer eligibility — those need external wallets.)_
 3. **Open source** — public GitHub repo, MIT.
 4. **Demo + README** — ≤5-min video + README with setup, SDK methods, integration notes.
 5. **BUIDL filed on DoraHacks** — this submission.

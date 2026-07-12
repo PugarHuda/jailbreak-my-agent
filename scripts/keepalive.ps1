@@ -5,14 +5,14 @@
 # One WS connection per SDK key is allowed - a second agent process trips a
 # "policy violation (duplicate key)" and one drops. So a named mutex enforces a
 # single supervisor; don't also run "npm start"/"npm run health" by hand while
-# this is up (prove-hire is HTTP-only and is safe to run alongside).
+# this is up (the WS-less buyer flow over REST is safe to run alongside).
 #
 # ASCII only: Windows PowerShell 5.1 reads .ps1 as the ANSI codepage, so a
 # non-ASCII char (em dash, ellipsis) corrupts parsing. Keep it plain ASCII.
 #
 # Run now:        powershell -ExecutionPolicy Bypass -File scripts\keepalive.ps1
 # Survive reboot: a launcher in the user's Startup folder already runs this at
-#   logon (see Jailbreak-My-AgentAgent.cmd). Delete that file to stop auto-starting.
+#   logon (see JailbreakAgent.cmd). Delete that file to stop auto-starting.
 
 # Continue (not Stop): a transient hiccup must not kill the supervisor itself.
 $ErrorActionPreference = "Continue"
@@ -20,7 +20,7 @@ $repo = Split-Path -Parent $PSScriptRoot   # scripts\.. -> repo root
 Set-Location $repo
 
 $created = $false
-$mutex = New-Object System.Threading.Mutex($true, "Global\Jailbreak-My-AgentAgentKeepalive", [ref]$created)
+$mutex = New-Object System.Threading.Mutex($true, "Global\JailbreakAgentKeepalive", [ref]$created)
 if (-not $created) {
   Write-Host "keepalive: another supervisor already holds the lock - exiting."
   exit 0
