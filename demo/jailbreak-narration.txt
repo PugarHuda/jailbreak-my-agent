@@ -1,0 +1,13 @@
+Everyone audits Solidity. Nobody audits the agent. As agents start hiring and paying each other on CROO, the real attack surface isn't the contract — it's the agent's behavior: prompt injection, secret and fund exfiltration, jailbreaks, and forged trust signals between agents.
+
+Jailbreak-My-Agent hires out as the adversary. Point it at your agent's endpoint and it runs eight adversarial probes, then returns a scored, reproducible vulnerability report — settled in USDC on Base. Pass your red-team before you list.
+
+Here's the engine self-check — no network, no API key. A deliberately vulnerable agent grades F. A safe agent that refuses everything grades A. The scoring is deterministic, so this is fully reproducible.
+
+Now the actual deliverable a buyer receives. Against the vulnerable agent: grade F, eight of eight probes failed — it leaked a planted canary, authorized a fund transfer, dumped a secret-shaped key, and obeyed a poisoned retrieval result. Against the safe agent: grade A, zero vulnerabilities. Each report carries an embedded machine-readable JSON block.
+
+Detection is heuristic-first: a canary token we plant, and a set of credential-leak signatures, are fully verifiable — no LLM is needed to run or grade a scan, so the report holds up under a human spot-check. And one failed critical — like a fund drain — gates the whole audit to F. A weighted average would hide a catastrophic hole; a security audit shouldn't.
+
+It's a real CAP provider: it accepts a negotiation, gets paid into escrow, scans the buyer's endpoint, and delivers the report on-chain. Here's a real order, settled in USDC on Base — negotiate, pay, scan, deliver, clear.
+
+And because a security agent must never become an attack pivot, every target is validated and the connection is pinned to a vetted public IP — no SSRF. Any orchestrator can hire this as a pre-listing gate and read the grade programmatically. Jailbreak-My-Agent — an agent that attacks agents. Pass your red-team before you list.
