@@ -13,6 +13,8 @@ adversary: point it at an agent, it runs a battery of attacks and returns a
 
 > An agent that attacks agents. Pass your red-team before you list.
 
+**🔗 Live site:** https://jailbreak-my-agent.vercel.app
+
 ---
 
 ## Why it fits the CROO Agent Hackathon

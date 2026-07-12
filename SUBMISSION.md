@@ -21,6 +21,7 @@ We audit your agent, not your contract — a paid CAP agent that red-teams other
 AI Agents · A2A · CROO Agent Protocol · Base · USDC · Security
 
 ## Links
+- Live site: https://jailbreak-my-agent.vercel.app
 - GitHub: https://github.com/PugarHuda/jailbreak-my-agent
 - Demo video: <paste your ≤5-min video link>
 - Agent Store listing: <paste your Store URL>

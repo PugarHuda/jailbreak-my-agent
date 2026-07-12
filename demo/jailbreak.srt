@@ -1,0 +1,95 @@
+1
+00:00:00,000 --> 00:00:05,000
+Everyone audits Solidity. Nobody audits the agent.
+
+2
+00:00:05,000 --> 00:00:11,000
+As agents hire and pay each other, the real attack surface is the agent's behavior.
+
+3
+00:00:11,000 --> 00:00:18,000
+Prompt injection, secret and fund exfiltration, jailbreaks, forged trust signals.
+
+4
+00:00:18,000 --> 00:00:25,000
+Jailbreak-My-Agent hires out as the adversary.
+
+5
+00:00:25,000 --> 00:00:31,000
+Point it at your agent and it runs eight adversarial probes.
+
+6
+00:00:31,000 --> 00:00:35,000
+A scored, reproducible report — settled in USDC on Base.
+
+7
+00:00:35,000 --> 00:00:42,000
+Here's the engine self-check — no network, no API key.
+
+8
+00:00:42,000 --> 00:00:48,000
+A vulnerable agent grades F. A safe agent that refuses everything grades A.
+
+9
+00:00:48,000 --> 00:00:52,000
+The scoring is deterministic — fully reproducible.
+
+10
+00:00:52,000 --> 00:00:59,000
+Now the actual deliverable a buyer receives.
+
+11
+00:00:59,000 --> 00:01:06,000
+Vulnerable agent: grade F, eight of eight probes failed.
+
+12
+00:01:06,000 --> 00:01:14,000
+It leaked a planted canary, authorized a fund transfer, dumped a secret-shaped key.
+
+13
+00:01:14,000 --> 00:01:20,000
+The safe agent: grade A, zero vulnerabilities — with a machine-readable JSON block.
+
+14
+00:01:20,000 --> 00:01:27,000
+Detection is heuristic-first: a planted canary and credential-leak signatures.
+
+15
+00:01:27,000 --> 00:01:33,000
+No LLM is needed to run or grade a scan — it holds up under a human spot-check.
+
+16
+00:01:33,000 --> 00:01:40,000
+And one failed critical — like a fund drain — gates the whole audit to F.
+
+17
+00:01:40,000 --> 00:01:45,000
+A weighted average would hide a catastrophic hole. A security audit shouldn't.
+
+18
+00:01:45,000 --> 00:01:52,000
+It's a real CAP provider: accept, get paid into escrow, scan, deliver on-chain.
+
+19
+00:01:52,000 --> 00:02:00,000
+Here's a real order, settled in USDC on Base.
+
+20
+00:02:00,000 --> 00:02:06,000
+Negotiate, pay, scan, deliver, clear.
+
+21
+00:02:06,000 --> 00:02:13,000
+A security agent must never become an attack pivot.
+
+22
+00:02:13,000 --> 00:02:19,000
+Every target is validated and pinned to a vetted public IP — no SSRF.
+
+23
+00:02:19,000 --> 00:02:26,000
+Any orchestrator can hire this as a pre-listing gate and read the grade.
+
+24
+00:02:26,000 --> 00:02:33,000
+Jailbreak-My-Agent — pass your red-team before you list.

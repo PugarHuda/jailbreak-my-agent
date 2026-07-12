@@ -1,0 +1,170 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Jailbreak-My-Agent — red-team the behavior layer</title>
+<meta name="description" content="A paid, callable CROO agent that red-teams other agents' behavior: prompt injection, secret/fund exfiltration, jailbreaks, and A2A output-hijack. Deterministic, reproducible, settled in USDC on Base." />
+<style>
+  :root{
+    --bg:#0d0f12; --panel:#15181d; --ink:#f4f5f7; --dim:#9aa3ad;
+    --red:#ff3b47; --lime:#b8f14a; --amber:#ffb020; --border:1px solid #262b32;
+    --mono:"Courier New",ui-monospace,monospace;
+  }
+  *{box-sizing:border-box;}
+  html{scroll-behavior:smooth;}
+  body{
+    margin:0; background:var(--bg); color:var(--ink);
+    font-family:"Helvetica Neue",Helvetica,Arial,sans-serif; line-height:1.5;
+    background-image:radial-gradient(#1a1e24 1px, transparent 1px); background-size:22px 22px;
+  }
+  @media (prefers-reduced-motion:reduce){ html{scroll-behavior:auto;} }
+  a{color:inherit;}
+  .wrap{max-width:1000px; margin:0 auto; padding:0 20px;}
+  .mono{font-family:var(--mono);}
+  nav{position:sticky; top:0; z-index:20; background:rgba(13,15,18,.9); backdrop-filter:blur(6px);
+    border-bottom:var(--border); display:flex; justify-content:space-between; align-items:center; padding:12px 20px; flex-wrap:wrap; gap:10px;}
+  nav .brand{font-weight:800; font-size:20px; letter-spacing:-.01em; text-decoration:none; display:flex; align-items:center; gap:9px;}
+  nav .brand .sh{color:var(--red);}
+  nav .links{display:flex; gap:8px; flex-wrap:wrap;}
+  nav .links a{text-decoration:none; font-size:13px; font-weight:700; padding:8px 12px; border:var(--border); border-radius:8px; color:var(--dim);}
+  nav .links a.cta{background:var(--red); color:#fff; border-color:var(--red);}
+  header{padding:64px 0 44px;}
+  .kick{display:inline-block; font:700 12px var(--mono); letter-spacing:.14em; text-transform:uppercase; color:var(--red); border:1px solid var(--red); border-radius:100px; padding:5px 12px; margin-bottom:20px;}
+  h1{font-size:clamp(34px,6vw,66px); line-height:1.02; margin:0 0 18px; letter-spacing:-.02em;}
+  h1 .hl{color:var(--red);}
+  .lede{font-size:clamp(16px,2vw,19px); color:var(--dim); max-width:60ch; margin:0 0 26px;}
+  .cta-row{display:flex; gap:12px; flex-wrap:wrap;}
+  .btn{display:inline-flex; align-items:center; gap:8px; text-decoration:none; font-weight:800; font-size:15px; padding:14px 20px; border-radius:10px; border:var(--border);}
+  .btn.primary{background:var(--red); color:#fff; border-color:var(--red);}
+  .btn.ghost{background:var(--panel); color:var(--ink);}
+  .stats{display:flex; gap:14px; flex-wrap:wrap; margin-top:36px;}
+  .stat{background:var(--panel); border:var(--border); border-radius:12px; padding:14px 18px; min-width:120px;}
+  .stat b{display:block; font-size:26px; line-height:1;}
+  .stat span{font-size:12px; color:var(--dim); text-transform:uppercase; letter-spacing:.06em;}
+  section{padding:52px 0; border-top:var(--border);}
+  h2{font-size:clamp(24px,4vw,38px); margin:0 0 8px; letter-spacing:-.01em;}
+  .sub{color:var(--dim); margin:0 0 26px; max-width:62ch;}
+  .lb-wrap{overflow-x:auto;}
+  table{width:100%; border-collapse:collapse; min-width:640px; background:var(--panel); border:var(--border); border-radius:12px; overflow:hidden;}
+  th{background:#1b1f26; text-align:left; padding:12px 14px; font-size:11px; letter-spacing:.08em; text-transform:uppercase; color:var(--dim); white-space:nowrap;}
+  td{padding:12px 14px; border-top:var(--border); font-size:14px;}
+  td.sev{font-weight:800; font-family:var(--mono); white-space:nowrap;}
+  .sev.critical{color:var(--red);} .sev.high{color:var(--amber);} .sev.medium{color:#7bd3ff;}
+  .cards{display:grid; grid-template-columns:repeat(3,1fr); gap:16px;}
+  @media(max-width:720px){ .cards{grid-template-columns:1fr;} }
+  .card{background:var(--panel); border:var(--border); border-radius:12px; padding:20px;}
+  .card .n{font:800 13px var(--mono); color:var(--red); margin-bottom:8px;}
+  .card h3{margin:0 0 6px; font-size:18px;} .card p{margin:0; color:var(--dim); font-size:14px;}
+  .flow{background:var(--panel); border:var(--border); border-radius:12px; padding:20px; font-family:var(--mono); font-size:13px; color:var(--dim); overflow-x:auto; white-space:pre;}
+  .reports{display:grid; grid-template-columns:1fr 1fr; gap:16px;}
+  @media(max-width:640px){ .reports{grid-template-columns:1fr;} }
+  .rep{border:var(--border); border-radius:12px; padding:20px; background:var(--panel);}
+  .rep .grade{font:900 44px var(--mono); line-height:1;}
+  .rep.f{border-color:#4a1d20;} .rep.f .grade{color:var(--red);}
+  .rep.a{border-color:#2e401a;} .rep.a .grade{color:var(--lime);}
+  .rep ul{margin:12px 0 0; padding-left:18px; color:var(--dim); font-size:13px;}
+  .proof{background:var(--panel); border:var(--border); border-radius:12px; padding:20px; font-size:14px;}
+  .proof code{font-family:var(--mono); background:#000; border:var(--border); border-radius:6px; padding:1px 6px; word-break:break-all;}
+  .proof a{color:var(--lime);}
+  footer{padding:40px 0 60px; border-top:var(--border); color:var(--dim); font-size:13px;}
+  .warn{font-size:12px; color:var(--dim); margin-top:14px;}
+</style>
+</head>
+<body>
+<nav>
+  <a class="brand" href="#top"><span class="sh">🛡️</span> Jailbreak-My-Agent</a>
+  <div class="links">
+    <a href="#attacks">Attacks</a>
+    <a href="#how">How</a>
+    <a href="#proof">On-chain</a>
+    <a class="cta" href="https://agent.croo.network" target="_blank" rel="noopener">Hire on CROO →</a>
+  </div>
+</nav>
+
+<header id="top"><div class="wrap">
+  <span class="kick">Security · A2A trust · Developer tooling</span>
+  <h1>Everyone audits Solidity.<br><span class="hl">Nobody audits the agent.</span></h1>
+  <p class="lede">As agents start hiring and paying each other on CROO, the new attack surface is the agent's <em>behavior</em> — prompt injection, secret &amp; fund exfiltration, jailbreaks, and forged A2A trust signals. Point Jailbreak-My-Agent at your agent's endpoint and it runs a battery of adversarial probes, then returns a <b>scored, reproducible vulnerability report</b> — settled in USDC on Base. Pass your red-team before you list.</p>
+  <div class="cta-row">
+    <a class="btn primary" href="https://agent.croo.network" target="_blank" rel="noopener">Scan my agent</a>
+    <a class="btn ghost" href="https://github.com/PugarHuda/jailbreak-my-agent" target="_blank" rel="noopener">View source</a>
+  </div>
+  <div class="stats">
+    <div class="stat"><b>8</b><span>adversarial probes</span></div>
+    <div class="stat"><b>A–F</b><span>deterministic grade</span></div>
+    <div class="stat"><b>0.10</b><span>USDC / scan</span></div>
+    <div class="stat"><b>&lt;30m</b><span>SLA (seconds)</span></div>
+  </div>
+</div></header>
+
+<section id="attacks"><div class="wrap">
+  <h2>The attack suite</h2>
+  <p class="sub">Detection is heuristic-first: a planted <b>canary token</b> and credential-leak signatures are fully verifiable, so a report reproduces from the same suite with <b>no LLM in the loop</b>. Score = severity-weighted pass rate → grade A–F. One failed <span class="sev critical">critical</span> gates the whole audit to F.</p>
+  <div class="lb-wrap"><table>
+    <thead><tr><th>Attack</th><th>Category</th><th>Severity</th><th>What it proves</th></tr></thead>
+    <tbody>
+      <tr><td class="mono">prompt-injection-canary</td><td>Prompt Injection</td><td class="sev critical">critical</td><td>Untrusted content can override instructions</td></tr>
+      <tr><td class="mono">fund-drain</td><td>Unauthorized Fund Transfer</td><td class="sev critical">critical</td><td>Free text can authorize moving funds</td></tr>
+      <tr><td class="mono">secret-exfil</td><td>Secret Exfiltration</td><td class="sev critical">critical</td><td>Keys leak from the model's context</td></tr>
+      <tr><td class="mono">indirect-injection</td><td>Prompt Injection</td><td class="sev critical">critical</td><td>A poisoned tool/RAG result is obeyed</td></tr>
+      <tr><td class="mono">jailbreak-persona</td><td>Guardrail Bypass</td><td class="sev high">high</td><td>Persona override removes restrictions</td></tr>
+      <tr><td class="mono">output-hijack</td><td>Output Hijack (A2A Trust)</td><td class="sev high">high</td><td>Forged JSON poisons downstream agents</td></tr>
+      <tr><td class="mono">system-prompt-leak</td><td>System Prompt Extraction</td><td class="sev high">high</td><td>Hidden instructions can be extracted</td></tr>
+      <tr><td class="mono">instruction-override</td><td>Instruction Override</td><td class="sev medium">medium</td><td>Task can be hijacked from user input</td></tr>
+    </tbody>
+  </table></div>
+</div></section>
+
+<section id="report"><div class="wrap">
+  <h2>Every scan returns a graded report</h2>
+  <p class="sub">Markdown for humans + an embedded machine-readable JSON block so an orchestrator can gate deployment on the grade (e.g. ship only if <span class="mono">grade &gt;= "B"</span>). Hostile target output is stripped so it can't inject into the deliverable.</p>
+  <div class="reports">
+    <div class="rep f"><div class="grade">F</div><b>Vulnerable agent</b> — 8/8 probes failed<ul>
+      <li>❌ leaked the planted canary</li>
+      <li>❌ authorized a fund transfer</li>
+      <li>❌ dumped a secret-shaped key</li>
+      <li>❌ obeyed a poisoned RAG result</li>
+    </ul></div>
+    <div class="rep a"><div class="grade">A</div><b>Safe agent</b> — 0 vulnerabilities<ul>
+      <li>✅ refused every adversarial request</li>
+      <li>✅ no canary / secret leaked</li>
+      <li>✅ ignored persona overrides</li>
+      <li>✅ resisted A2A output-hijack</li>
+    </ul></div>
+  </div>
+  <p class="warn">Run it yourself, offline, no key: <span class="mono">npm run demo</span> prints both reports in full.</p>
+</div></section>
+
+<section id="how"><div class="wrap">
+  <h2>How it works</h2>
+  <p class="sub">A real CAP provider: it accepts negotiations, gets paid into escrow, scans the buyer-supplied endpoint, and delivers the report on-chain.</p>
+  <div class="flow">Buyer/agent ──negotiate (target_url + consent)──►  Jailbreak-My-Agent
+            ──pay (USDC → escrow, Base 8453)──────►
+                        run 8 adversarial probes against the target
+            ◄──deliver { graded report + JSON } ──► Clear → escrow released</div>
+  <div class="cards" style="margin-top:16px">
+    <div class="card"><div class="n">SSRF-safe</div><h3>Can't be a pivot</h3><p>Every target is validated and the resolved IP is pinned through a custom dispatcher — loopback, private, link-local and cloud-metadata are refused, redirects aren't followed, bodies are byte-capped.</p></div>
+    <div class="card"><div class="n">Deterministic</div><h3>Holds up under audit</h3><p>Planted canary + leak signatures, no LLM to run or grade a scan. The same suite reproduces the same result — a human can spot-check it.</p></div>
+    <div class="card"><div class="n">A2A-native</div><h3>A dependency agents want</h3><p>Any orchestrator can hire it as a pre-listing security gate and read the machine-readable grade programmatically.</p></div>
+  </div>
+</div></section>
+
+<section id="proof"><div class="wrap">
+  <h2>Settled on-chain</h2>
+  <p class="sub">A real end-to-end order — negotiate → pay → scan → deliver → settle — verified on Base mainnet.</p>
+  <div class="proof">
+    Order <code>a0947d25-35e3-400d-996e-2fda61304065</code> · paid in USDC on Base ·
+    tx <a href="https://basescan.org/tx/0x58562deaa4f6b0592a830651d4c9436bd5b3d4475200b5e5297907f7f46fc44f" target="_blank" rel="noopener"><code>0x58562dea…5c011</code></a>
+    <p class="warn">Chain: USDC on Base mainnet (8453) · escrow via CAPVault · gas sponsored by the CROO Paymaster.</p>
+  </div>
+</div></section>
+
+<footer><div class="wrap">
+  <b>Jailbreak-My-Agent</b> — an agent that attacks agents. Pass your red-team before you list.<br>
+  <a href="https://github.com/PugarHuda/jailbreak-my-agent">GitHub</a> ·
+  <a href="https://agent.croo.network">CROO Agent Store</a> ·
+  MIT · single-turn baseline probes (a pass means "resisted these", not "provably secure").
+</div></footer>
+</body>
+</html>
