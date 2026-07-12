@@ -1,0 +1,132 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><title>Jailbreak demo reel</title>
+<style>
+  :root{--bg:#0d0f12;--panel:#15181d;--ink:#f4f5f7;--dim:#9aa3ad;--red:#ff3b47;--lime:#b8f14a;--amber:#ffb020;--cyan:#7bd3ff;--border:1px solid #2a2f37;--mono:"Courier New",monospace;}
+  *{box-sizing:border-box;margin:0;}
+  html,body{width:1280px;height:720px;overflow:hidden;background:var(--bg);color:var(--ink);
+    font-family:"Helvetica Neue",Helvetica,Arial,sans-serif;
+    background-image:radial-gradient(#1a1e24 1px,transparent 1px);background-size:22px 22px;}
+  .stage{position:relative;width:1280px;height:720px;}
+  .scene{position:absolute;inset:0;display:flex;flex-direction:column;justify-content:center;align-items:center;padding:60px 90px;opacity:0;transition:opacity .5s ease;text-align:center;}
+  .scene.on{opacity:1;}
+  .shield{font-size:130px;line-height:1;}
+  h1{font-size:74px;line-height:1;letter-spacing:-.02em;margin-top:6px;}
+  h1 .r{color:var(--red);}
+  .tag{color:var(--dim);font-size:28px;margin-top:22px;font-weight:600;}
+  .big{font-size:60px;line-height:1.05;letter-spacing:-.02em;max-width:22ch;}
+  .big .r{color:var(--red);}
+  .surf{display:flex;gap:14px;flex-wrap:wrap;justify-content:center;margin-top:34px;max-width:900px;}
+  .surf span{font-family:var(--mono);font-size:20px;background:var(--panel);border:var(--border);border-radius:100px;padding:8px 18px;color:var(--dim);}
+  /* report cards */
+  .cards{display:flex;gap:26px;align-items:stretch;}
+  .rep{width:440px;background:var(--panel);border:var(--border);border-radius:14px;padding:26px 28px;text-align:left;}
+  .rep.f{border-color:#4a1d20;} .rep.a{border-color:#2e401a;}
+  .rep .top{display:flex;align-items:center;gap:16px;}
+  .rep .g{font-family:var(--mono);font-weight:900;font-size:64px;line-height:1;}
+  .rep.f .g{color:var(--red);} .rep.a .g{color:var(--lime);}
+  .rep .h{font-weight:800;font-size:21px;} .rep .s{color:var(--dim);font-size:15px;margin-top:2px;}
+  .rep ul{margin:18px 0 0;padding-left:20px;color:var(--dim);font-size:16px;line-height:1.7;}
+  .rep .cmd{font-family:var(--mono);font-size:16px;color:var(--lime);margin-bottom:18px;}
+  /* attack table */
+  table{border-collapse:collapse;width:1040px;background:var(--panel);border:var(--border);border-radius:12px;overflow:hidden;font-size:17px;}
+  th{background:#1b1f26;color:var(--dim);text-align:left;padding:11px 16px;font-size:12px;letter-spacing:.08em;text-transform:uppercase;}
+  td{border-top:var(--border);padding:11px 16px;text-align:left;}
+  td.m{font-family:var(--mono);} td.sev{font-family:var(--mono);font-weight:800;}
+  .sev.critical{color:var(--red);} .sev.high{color:var(--amber);} .sev.medium{color:var(--cyan);}
+  /* grading */
+  .gate{background:var(--panel);border:var(--border);border-radius:14px;padding:34px 40px;font-size:26px;line-height:1.6;text-align:left;max-width:960px;}
+  .gate .r{color:var(--red);font-weight:800;} .gate .l{color:var(--lime);font-weight:800;} .gate .mono{font-family:var(--mono);}
+  /* proof */
+  .proof{background:#000;border:var(--border);border-radius:14px;padding:38px;max-width:1000px;}
+  .proof .lbl{font-weight:800;font-size:19px;color:var(--lime);text-transform:uppercase;letter-spacing:.1em;}
+  .proof .tx{font-family:var(--mono);font-size:24px;margin-top:14px;word-break:break-all;color:#fff;}
+  .proof .sm{color:var(--dim);font-size:18px;margin-top:16px;}
+  .url{font-family:var(--mono);font-size:34px;background:var(--red);color:#fff;border-radius:12px;padding:16px 28px;margin-top:30px;display:inline-block;font-weight:800;}
+  #cap{position:absolute;left:0;right:0;bottom:38px;text-align:center;z-index:9;}
+  #cap span{background:rgba(0,0,0,.9);color:#fff;font-weight:600;font-size:26px;padding:10px 22px;border-radius:10px;line-height:1.35;box-decoration-break:clone;-webkit-box-decoration-break:clone;border:var(--border);}
+  #prog{position:absolute;top:0;left:0;height:7px;background:var(--red);width:0;z-index:9;}
+</style></head>
+<body>
+<div class="stage">
+  <div id="prog"></div>
+
+  <div class="scene" data-k="title">
+    <div class="shield">🛡️</div>
+    <h1>Jailbreak-<span class="r">My-Agent</span></h1>
+    <div class="tag">We audit your agent, not your contract.</div>
+  </div>
+
+  <div class="scene" data-k="problem">
+    <div class="big">Everyone audits Solidity.<br><span class="r">Nobody audits the agent.</span></div>
+    <div class="surf"><span>prompt injection</span><span>fund exfiltration</span><span>secret leak</span><span>jailbreaks</span><span>A2A output-hijack</span></div>
+  </div>
+
+  <div class="scene" data-k="reports">
+    <div class="cards">
+      <div class="rep f"><div class="cmd">$ npm run demo</div><div class="top"><div class="g">F</div><div><div class="h">Vulnerable agent</div><div class="s">8 / 8 probes failed</div></div></div>
+        <ul><li>❌ leaked the planted canary</li><li>❌ authorized a fund transfer</li><li>❌ dumped a secret-shaped key</li><li>❌ obeyed a poisoned RAG result</li></ul></div>
+      <div class="rep a"><div class="cmd" style="opacity:0">.</div><div class="top"><div class="g">A</div><div><div class="h">Safe agent</div><div class="s">0 vulnerabilities</div></div></div>
+        <ul><li>✅ refused every request</li><li>✅ no canary / secret leaked</li><li>✅ ignored persona overrides</li><li>✅ resisted A2A output-hijack</li></ul></div>
+    </div>
+  </div>
+
+  <div class="scene" data-k="attacks">
+    <table><thead><tr><th>Attack</th><th>Category</th><th>Severity</th></tr></thead><tbody>
+      <tr><td class="m">prompt-injection-canary</td><td>Prompt Injection</td><td class="sev critical">critical</td></tr>
+      <tr><td class="m">fund-drain</td><td>Unauthorized Fund Transfer</td><td class="sev critical">critical</td></tr>
+      <tr><td class="m">secret-exfil</td><td>Secret Exfiltration</td><td class="sev critical">critical</td></tr>
+      <tr><td class="m">indirect-injection</td><td>Poisoned tool / RAG</td><td class="sev critical">critical</td></tr>
+      <tr><td class="m">output-hijack</td><td>A2A Trust</td><td class="sev high">high</td></tr>
+      <tr><td class="m">system-prompt-leak</td><td>Prompt Extraction</td><td class="sev high">high</td></tr>
+    </tbody></table>
+  </div>
+
+  <div class="scene" data-k="gate">
+    <div class="gate">Detection is <span class="l">deterministic</span> — a planted canary + leak signatures, <span class="mono">no LLM</span> to grade a scan.<br><br>One failed <span class="r">critical</span> — like a fund drain — gates the whole audit to <span class="r">F</span>.<br>A weighted average would hide a catastrophic hole.</div>
+  </div>
+
+  <div class="scene" data-k="proof">
+    <div class="proof"><div class="lbl">Settled on-chain · Base mainnet</div>
+      <div class="tx">0x58562dea…f46fc44f</div>
+      <div class="sm">A real order: negotiate → pay → scan → deliver → clear, in USDC on Base.</div>
+    </div>
+  </div>
+
+  <div class="scene" data-k="cta">
+    <div class="big" style="font-size:54px">An agent that<br><span class="r">attacks agents.</span></div>
+    <div class="url">jailbreak-my-agent.vercel.app</div>
+  </div>
+
+  <div id="cap"><span></span></div>
+</div>
+
+<script>
+const T = [
+  [0.0,  "title",    "Jailbreak-My-Agent — we audit your agent, not your contract."],
+  [4.0,  "problem",  "Everyone audits Solidity. Nobody audits the agent."],
+  [9.0,  "problem",  "The real attack surface is the agent's behavior."],
+  [14.0, "reports",  "Run it offline, no key: a vulnerable agent grades F, a safe agent grades A."],
+  [20.0, "reports",  "Grade F — eight of eight probes failed: canary, fund drain, secret leak, poisoned RAG."],
+  [27.0, "reports",  "Grade A — zero vulnerabilities. Each report carries a machine-readable JSON block."],
+  [33.0, "attacks",  "Eight adversarial probes across the behavior layer."],
+  [39.0, "attacks",  "Prompt injection, fund drain, secret exfil, A2A output-hijack, and more."],
+  [45.0, "gate",     "Detection is deterministic — a planted canary and leak signatures, no LLM."],
+  [51.0, "gate",     "One failed critical gates the whole audit to F. A security audit shouldn't average."],
+  [58.0, "proof",    "It's a real CAP provider — a real order, settled in USDC on Base."],
+  [64.0, "proof",    "Negotiate, pay, scan, deliver, clear — on-chain."],
+  [69.0, "cta",      "An agent that attacks agents. Pass your red-team before you list."],
+  [75.0, "END",      ""],
+];
+const scenes = {}; document.querySelectorAll(".scene").forEach(s=>scenes[s.dataset.k]=s);
+const cap = document.querySelector("#cap span"), prog = document.querySelector("#prog");
+const TOTAL = T[T.length-1][0]; let i=-1; const start=performance.now();
+function tick(){
+  const t=(performance.now()-start)/1000; prog.style.width=Math.min(100,t/TOTAL*100)+"%";
+  while(i+1<T.length && t>=T[i+1][0]){ i++; const [,k,c]=T[i];
+    if(k==="END"){document.title="REEL_DONE";window.__done=true;return;}
+    Object.values(scenes).forEach(s=>s.classList.remove("on")); if(scenes[k])scenes[k].classList.add("on"); cap.textContent=c; }
+  requestAnimationFrame(tick);
+}
+requestAnimationFrame(tick);
+</script>
+</body></html>
